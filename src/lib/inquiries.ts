@@ -1,28 +1,78 @@
-import {
-  addInquiry,
-  getAllInquiries,
-  getInquiryById,
-} from "@/data/inquiries";
-import type { Inquiry, InquiryCategory, InquiryInput } from "@/types";
+import { client } from "@/lib/microcms";
+import type {
+  Inquiry,
+  InquiryCategory,
+  InquiryCms,
+  InquiryContent,
+  InquiryInput,
+} from "@/types";
 
-// モックストアを薄くラップしたインターフェース。
-// 将来的にはここを microCMS 呼び出しに差し替えれば
-// 画面側コードを変えずに本番運用できる。
+function formatInquiry(c: InquiryCms): Inquiry {
+  const hasResponse =
+    !!c.responseBody && !!c.respondedAt && !!c.respondedBy;
+  return {
+    id: c.id,
+    title: c.title,
+    body: c.body,
+    category: c.category[0],
+    status: c.status?.[0] ?? "pending",
+    // 公開日時を優先（下書き→公開された時点）、未公開なら createdAt
+    createdAt: c.publishedAt ?? c.createdAt,
+    response: hasResponse
+      ? {
+          body: c.responseBody!,
+          respondedAt: c.respondedAt!,
+          respondedBy: c.respondedBy!,
+        }
+      : undefined,
+  };
+}
 
 export async function getInquiries(
   category?: InquiryCategory
 ): Promise<Inquiry[]> {
-  const all = getAllInquiries();
-  if (!category) return all;
-  return all.filter((i) => i.category === category);
+  if (!client) return [];
+  const res = await client.getList<InquiryCms>({
+    endpoint: "inquiries",
+    queries: {
+      filters: category ? `category[contains]${category}` : undefined,
+      orders: "-publishedAt",
+      limit: 100,
+    },
+  });
+  return res.contents.map(formatInquiry);
 }
 
 export async function getInquiry(id: string): Promise<Inquiry | undefined> {
-  return getInquiryById(id);
+  if (!client) return undefined;
+  try {
+    const c = await client.get<InquiryCms>({
+      endpoint: "inquiries",
+      contentId: id,
+    });
+    return formatInquiry(c);
+  } catch {
+    return undefined;
+  }
 }
 
-export async function createInquiry(input: InquiryInput): Promise<Inquiry> {
-  return addInquiry(input);
+// 住民の投稿は下書きとして保存。役員が microCMS 管理画面で公開操作をするまで一覧に出ない。
+export async function createInquiry(
+  input: InquiryInput
+): Promise<{ id: string }> {
+  if (!client) {
+    throw new Error("microCMS client is not configured");
+  }
+  return client.create<InquiryContent>({
+    endpoint: "inquiries",
+    content: {
+      title: input.title,
+      body: input.body,
+      category: [input.category],
+      status: ["pending"],
+    },
+    isDraft: true,
+  });
 }
 
 export const INQUIRY_CATEGORY_LABELS: Record<InquiryCategory, string> = {

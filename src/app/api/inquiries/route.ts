@@ -49,14 +49,29 @@ export async function POST(request: Request) {
     );
   }
 
-  const created = await createInquiry({
-    category,
-    title: title.trim(),
-    body: text.trim(),
-  });
+  try {
+    const { id } = await createInquiry({
+      category,
+      title: title.trim(),
+      body: text.trim(),
+    });
 
-  revalidatePath("/inquiries");
-  revalidatePath("/");
+    // 下書き保存なので一覧に影響はないが、将来公開時に備えて残す
+    revalidatePath("/inquiries");
+    revalidatePath("/");
 
-  return NextResponse.json({ inquiry: created }, { status: 201 });
+    return NextResponse.json(
+      {
+        id,
+        message: "投稿を受け付けました。役員の確認後に公開されます。",
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("[inquiries] create failed", error);
+    return NextResponse.json(
+      { error: "送信に失敗しました。時間をおいて再度お試しください。" },
+      { status: 500 }
+    );
+  }
 }

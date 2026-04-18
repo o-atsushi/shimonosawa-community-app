@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import type { InquiryCategory } from "@/types";
 import { INQUIRY_CATEGORY_LABELS } from "@/lib/inquiries";
@@ -10,11 +10,11 @@ const TITLE_MAX = 50;
 const BODY_MAX = 500;
 
 export default function InquiryForm() {
-  const router = useRouter();
   const [category, setCategory] = useState<InquiryCategory>("request");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -45,12 +45,33 @@ export default function InquiryForm() {
         return;
       }
 
-      router.push("/inquiries");
-      router.refresh();
+      setSubmitted(true);
     } catch {
       setError("通信エラーが発生しました");
       setSubmitting(false);
     }
+  }
+
+  if (submitted) {
+    return (
+      <div className="text-center py-4">
+        <div className="text-5xl mb-4">✅</div>
+        <h2 className="text-lg font-bold text-gray-800 mb-2">
+          投稿ありがとうございました
+        </h2>
+        <p className="text-sm text-gray-600 leading-relaxed mb-6">
+          内容を役員が確認のうえ、掲示板に公開します。
+          <br />
+          公開まで少しお時間をいただく場合があります。
+        </p>
+        <Link
+          href="/inquiries"
+          className="inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+        >
+          掲示板に戻る
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -127,9 +148,10 @@ export default function InquiryForm() {
         />
       </div>
 
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600">
-        <p className="mb-1">📝 投稿は匿名で行われます。</p>
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 space-y-1">
+        <p>📝 投稿は匿名で行われます。</p>
         <p>個人情報は投稿しないようご注意ください。</p>
+        <p>役員の確認後に掲示板へ公開されます。</p>
       </div>
 
       {error && (

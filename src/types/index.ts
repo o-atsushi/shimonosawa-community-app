@@ -73,3 +73,19 @@ export interface InquiryInput {
   title: string;
   body: string;
 }
+
+// microCMS 側の生スキーマに対応する型
+// - category / status はセレクトフィールドなので配列で返る
+// - response は responseBody / respondedAt / respondedBy の3フィールドを
+//   役員が管理画面で入力する想定で、存在しない場合は undefined
+export interface InquiryContent {
+  title: string;
+  body: string;
+  category: [InquiryCategory];
+  status: [InquiryStatus];
+  responseBody?: string;
+  respondedAt?: string; // ISO date string
+  respondedBy?: string;
+}
+
+export type InquiryCms = InquiryContent & MicroCMSListContent;

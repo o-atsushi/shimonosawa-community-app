@@ -8,7 +8,7 @@ import {
   INQUIRY_STATUS_LABELS,
 } from "@/lib/inquiries";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
