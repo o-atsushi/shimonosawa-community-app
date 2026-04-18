@@ -1,4 +1,5 @@
 import { getArticles } from "@/lib/api";
+import ArticleBody from "@/components/ArticleBody";
 
 export default async function LifePage() {
   const articles = await getArticles("life");
@@ -22,9 +23,7 @@ export default async function LifePage() {
               {article.title}
             </h3>
             <p className="text-xs text-gray-500 mb-3">{article.summary}</p>
-            <div className="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed">
-              {article.content}
-            </div>
+            <ArticleBody html={article.content} />
           </article>
         ))}
       </div>
