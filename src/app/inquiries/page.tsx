@@ -11,7 +11,7 @@ export default async function InquiriesPage() {
     <div className="relative">
       <h1 className="text-xl font-bold text-gray-800 mb-2">💬 みんなの掲示板</h1>
       <p className="text-xs text-gray-500 mb-4">
-        自治会員からの要望・質問と、市役所からの回答を掲載しています。
+        自治会員からの要望・質問と、自治会役員からの回答を掲載しています。
       </p>
 
       {inquiries.length === 0 ? (

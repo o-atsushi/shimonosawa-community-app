@@ -28,15 +28,6 @@ export default async function LifePage() {
         ))}
       </div>
 
-      <div className="mt-6 bg-green-50 border border-green-200 rounded-xl p-4">
-        <h3 className="font-bold text-green-800 text-sm mb-2">よく使う窓口</h3>
-        <ul className="text-sm text-green-700 space-y-2">
-          <li>📋 住民票・戸籍: 市民課（1階）</li>
-          <li>🏥 国民健康保険: 保険年金課（2階）</li>
-          <li>👶 子育て支援: 子育て支援課（3階）</li>
-          <li>🏠 税金・届出: 税務課（1階）</li>
-        </ul>
-      </div>
     </div>
   );
 }
