@@ -2,8 +2,7 @@ import Link from "next/link";
 import InquiryCard from "@/components/InquiryCard";
 import { getInquiries } from "@/lib/inquiries";
 
-// 毎回最新のデータを取得（モックのインメモリストア用）
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function InquiriesPage() {
   const inquiries = await getInquiries();

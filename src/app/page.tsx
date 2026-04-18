@@ -5,12 +5,15 @@ import InquiryCard from "@/components/InquiryCard";
 import { getCategories, getLatestArticles } from "@/lib/api";
 import { getInquiries } from "@/lib/inquiries";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function Home() {
   const categories = getCategories();
-  const latestArticles = await getLatestArticles(5);
-  const latestInquiries = (await getInquiries()).slice(0, 3);
+  const [latestArticles, allInquiries] = await Promise.all([
+    getLatestArticles(5),
+    getInquiries(),
+  ]);
+  const latestInquiries = allInquiries.slice(0, 3);
 
   return (
     <div className="space-y-6">
