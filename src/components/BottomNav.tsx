@@ -7,6 +7,7 @@ const navItems = [
   { href: "/", label: "ホーム", icon: "🏠" },
   { href: "/news", label: "お知らせ", icon: "📢" },
   { href: "/events", label: "イベント", icon: "🎉" },
+  { href: "/inquiries", label: "掲示板", icon: "💬" },
   { href: "/emergency", label: "防災", icon: "🚨" },
   { href: "/life", label: "生活", icon: "📋" },
 ];
@@ -26,7 +27,7 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center py-2 px-3 text-xs transition-colors ${
+              className={`flex flex-col items-center py-2 px-2 text-xs transition-colors ${
                 isActive
                   ? "text-green-600 font-bold"
                   : "text-gray-500 hover:text-green-500"

@@ -41,6 +41,11 @@ export const mockArticles: FormattedArticle[] = [
     category: "news",
     date: "2026-04-10",
     important: false,
+    pdf: {
+      url: "/sample-pdfs/about-community.pdf",
+      fileName: "自治会新設に向けて動き出そうとした理由.pdf",
+      fileSize: 55959,
+    },
   },
   {
     id: "news-2",
@@ -61,6 +66,11 @@ export const mockArticles: FormattedArticle[] = [
     category: "events",
     date: "2026-04-05",
     important: true,
+    pdf: {
+      url: "/sample-pdfs/about-community.pdf",
+      fileName: "自治会新設に向けて動き出そうとした理由.pdf",
+      fileSize: 55959,
+    },
   },
   {
     id: "events-2",

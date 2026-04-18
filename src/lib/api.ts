@@ -18,6 +18,13 @@ function formatArticle(article: Article): FormattedArticle {
     date: article.publishedAt?.split("T")[0] ?? article.createdAt.split("T")[0],
     imageUrl: article.image?.url,
     important: article.important ?? false,
+    pdf: article.pdfUrl
+      ? {
+          url: article.pdfUrl,
+          fileName: article.pdfFileName ?? "document.pdf",
+          fileSize: article.pdfFileSize,
+        }
+      : undefined,
   };
 }
 

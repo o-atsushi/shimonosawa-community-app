@@ -43,6 +43,12 @@ export default function ArticleCard({ article }: { article: FormattedArticle }) 
         {article.title}
       </h3>
       <p className="text-xs text-gray-500 line-clamp-2">{article.summary}</p>
+      {article.pdf && (
+        <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+          <span>📄</span>
+          <span>PDF添付あり</span>
+        </p>
+      )}
     </Link>
   );
 }

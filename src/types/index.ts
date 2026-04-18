@@ -2,6 +2,13 @@ import type { MicroCMSListContent, MicroCMSImage } from "microcms-js-sdk";
 
 export type Category = "news" | "events" | "emergency" | "life";
 
+// 添付PDF（Cloudflare R2 等でホスティングしたPDFを想定）
+export interface PdfAttachment {
+  url: string;
+  fileName: string;
+  fileSize?: number; // バイト
+}
+
 // microCMS のスキーマに対応する型
 export interface ArticleContent {
   title: string;
@@ -10,6 +17,10 @@ export interface ArticleContent {
   category: [Category]; // セレクトフィールド
   image?: MicroCMSImage;
   important?: boolean;
+  // PDF 添付（microCMS 側では 3フィールド: pdfUrl / pdfFileName / pdfFileSize）
+  pdfUrl?: string;
+  pdfFileName?: string;
+  pdfFileSize?: number;
 }
 
 // microCMS のレスポンス型（id, createdAt, updatedAt 等が自動付与）
@@ -25,6 +36,7 @@ export interface FormattedArticle {
   date: string;
   imageUrl?: string;
   important: boolean;
+  pdf?: PdfAttachment;
 }
 
 export interface CategoryInfo {
@@ -33,4 +45,31 @@ export interface CategoryInfo {
   icon: string;
   description: string;
   color: string;
+}
+
+// ===== 要望・質問掲示板 =====
+
+export type InquiryCategory = "request" | "question" | "other";
+export type InquiryStatus = "pending" | "in_progress" | "answered";
+
+export interface InquiryResponse {
+  body: string;
+  respondedAt: string; // ISO date string
+  respondedBy: string; // 例: "市民課"
+}
+
+export interface Inquiry {
+  id: string;
+  category: InquiryCategory;
+  title: string;
+  body: string;
+  createdAt: string; // ISO date string
+  status: InquiryStatus;
+  response?: InquiryResponse;
+}
+
+export interface InquiryInput {
+  category: InquiryCategory;
+  title: string;
+  body: string;
 }

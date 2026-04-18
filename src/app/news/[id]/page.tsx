@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getArticleById } from "@/lib/api";
+import PdfViewer from "@/components/PdfViewer";
 
 export default async function NewsDetailPage({
   params,
@@ -38,6 +39,7 @@ export default async function NewsDetailPage({
         <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
           {article.content}
         </div>
+        {article.pdf && <PdfViewer pdf={article.pdf} />}
       </article>
     </div>
   );
