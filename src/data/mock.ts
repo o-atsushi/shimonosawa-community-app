@@ -16,13 +16,6 @@ export const categories: CategoryInfo[] = [
     color: "bg-orange-500",
   },
   {
-    id: "emergency",
-    label: "防災・緊急",
-    icon: "🚨",
-    description: "防災情報・緊急連絡",
-    color: "bg-red-500",
-  },
-  {
     id: "life",
     label: "生活情報",
     icon: "🏠",
@@ -81,16 +74,6 @@ export const mockArticles: FormattedArticle[] = [
     category: "events",
     date: "2026-04-03",
     important: false,
-  },
-  {
-    id: "emergency-1",
-    title: "大雨警報発令時の避難所について",
-    summary: "市内の指定避難所一覧と開設基準をご確認ください。",
-    content:
-      "大雨警報が発令された際の避難所情報です。\n\n■ 指定避難所\n・中央公民館（定員200名）\n・第一小学校 体育館（定員300名）\n・市民体育館（定員500名）\n\n■ 開設基準\n大雨警報または洪水警報が発令された場合\n\n■ 持ち物\n・飲料水、食料（1日分）\n・常備薬\n・懐中電灯\n・モバイルバッテリー\n\n日頃からハザードマップで避難経路を確認しておきましょう。",
-    category: "emergency",
-    date: "2026-04-01",
-    important: true,
   },
   {
     id: "life-1",

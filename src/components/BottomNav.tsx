@@ -8,7 +8,6 @@ const navItems = [
   { href: "/news", label: "お知らせ", icon: "📢" },
   { href: "/events", label: "イベント", icon: "🎉" },
   { href: "/inquiries", label: "掲示板", icon: "💬" },
-  { href: "/emergency", label: "防災", icon: "🚨" },
   { href: "/life", label: "生活", icon: "📋" },
 ];
 

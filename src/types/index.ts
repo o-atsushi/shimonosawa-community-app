@@ -1,6 +1,6 @@
 import type { MicroCMSListContent, MicroCMSImage } from "microcms-js-sdk";
 
-export type Category = "news" | "events" | "emergency" | "life";
+export type Category = "news" | "events" | "life";
 
 // 添付PDF（Cloudflare R2 等でホスティングしたPDFを想定）
 export interface PdfAttachment {

@@ -4,20 +4,18 @@ import type { FormattedArticle } from "@/types";
 const categoryLabels: Record<string, string> = {
   news: "お知らせ",
   events: "イベント",
-  emergency: "防災・緊急",
   life: "生活情報",
 };
 
 const categoryColors: Record<string, string> = {
   news: "bg-blue-100 text-blue-700",
   events: "bg-orange-100 text-orange-700",
-  emergency: "bg-red-100 text-red-700",
   life: "bg-green-100 text-green-700",
 };
 
 export default function ArticleCard({ article }: { article: FormattedArticle }) {
   const href =
-    article.category === "emergency" || article.category === "life"
+    article.category === "life"
       ? `/${article.category}`
       : `/${article.category}/${article.id}`;
 
