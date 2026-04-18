@@ -70,7 +70,7 @@ export default async function InquiryDetailPage({
         <article className="bg-green-50 rounded-xl p-5 shadow-sm border border-green-200">
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <span className="text-xs px-2 py-0.5 rounded-full bg-green-600 text-white font-medium">
-              🏛️ 市役所からの回答
+              🏛️ 自治会からの回答
             </span>
             <span className="text-xs text-gray-500 ml-auto">
               {formatDateTime(inquiry.response.respondedAt)}

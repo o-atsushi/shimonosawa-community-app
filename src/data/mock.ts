@@ -5,7 +5,7 @@ export const categories: CategoryInfo[] = [
     id: "news",
     label: "お知らせ",
     icon: "📢",
-    description: "市役所からのお知らせ",
+    description: "自治会からのお知らせ",
     color: "bg-blue-500",
   },
   {

@@ -7,9 +7,9 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-green-600 text-white shadow-md">
       <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold">🏛️ やす市</span>
+          <span className="text-xl font-bold">🏛️ 野州シモノサワCommunity</span>
         </Link>
-        <span className="text-xs opacity-80">市民情報ポータル</span>
+        <span className="text-xs opacity-80">下ノ沢情報ポータル</span>
       </div>
     </header>
   );
