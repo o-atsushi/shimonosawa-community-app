@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { InquiryCategory } from "@/types";
 import { INQUIRY_CATEGORY_LABELS } from "@/lib/inquiries";
+import { getProfile, isLoggedIn } from "@/lib/liff";
 
 const CATEGORIES: InquiryCategory[] = ["request", "question", "other"];
 const TITLE_MAX = 50;
@@ -16,6 +17,22 @@ export default function InquiryForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // LIFF ログイン済みなら userId を保持する。未ログイン / 非LIFF環境では undefined のまま
+  const [lineUserId, setLineUserId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!isLoggedIn()) return;
+    const profilePromise = getProfile();
+    if (!profilePromise) return;
+    profilePromise
+      .then((profile) => {
+        if (profile?.userId) setLineUserId(profile.userId);
+      })
+      .catch((err) => {
+        // LIFF外やネットワーク失敗時は通知を諦め、投稿は通常通り可能
+        console.warn("[InquiryForm] failed to get LIFF profile", err);
+      });
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,7 +52,7 @@ export default function InquiryForm() {
       const res = await fetch("/api/inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, title, body }),
+        body: JSON.stringify({ category, title, body, lineUserId }),
       });
 
       if (!res.ok) {
@@ -149,9 +166,12 @@ export default function InquiryForm() {
       </div>
 
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 space-y-1">
-        <p>📝 投稿は匿名で行われます。</p>
+        <p>📝 投稿は匿名で掲示板に表示されます。</p>
         <p>個人情報は投稿しないようご注意ください。</p>
         <p>役員の確認後に掲示板へ公開されます。</p>
+        {lineUserId ? (
+          <p>🔔 回答が公開されたら LINE にお知らせが届きます。</p>
+        ) : null}
       </div>
 
       {error && (

@@ -72,6 +72,8 @@ export interface InquiryInput {
   category: InquiryCategory;
   title: string;
   body: string;
+  // 投稿者の LINE userId (通知送信用)。LIFFログイン済みの時だけ付与される
+  lineUserId?: string;
 }
 
 // microCMS 側の生スキーマに対応する型
@@ -86,6 +88,8 @@ export interface InquiryContent {
   responseBody?: string;
   respondedAt?: string; // ISO date string
   respondedBy?: string;
+  // 投稿者の LINE userId (Phase 3 の通知送信用、画面には表示しない)
+  lineUserId?: string;
 }
 
 export type InquiryCms = InquiryContent & MicroCMSListContent;

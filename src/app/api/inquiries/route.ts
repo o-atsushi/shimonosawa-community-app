@@ -4,6 +4,8 @@ import { createInquiry } from "@/lib/inquiries";
 import type { InquiryCategory, InquiryInput } from "@/types";
 
 const VALID_CATEGORIES: InquiryCategory[] = ["request", "question", "other"];
+// LINE userId は "U" 始まりの33文字(Uプラス32文字の16進数)
+const LINE_USER_ID_PATTERN = /^U[0-9a-f]{32}$/;
 
 export async function POST(request: Request) {
   let body: Partial<InquiryInput>;
@@ -16,7 +18,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const { category, title, body: text } = body;
+  const { category, title, body: text, lineUserId } = body;
+  // lineUserId は任意。フォーマットが合わない値は黙って無視する(防御的)
+  const safeLineUserId =
+    typeof lineUserId === "string" && LINE_USER_ID_PATTERN.test(lineUserId)
+      ? lineUserId
+      : undefined;
 
   if (!category || !VALID_CATEGORIES.includes(category)) {
     return NextResponse.json(
@@ -54,6 +61,7 @@ export async function POST(request: Request) {
       category,
       title: title.trim(),
       body: text.trim(),
+      lineUserId: safeLineUserId,
     });
 
     // 下書き保存なので一覧に影響はないが、将来公開時に備えて残す
