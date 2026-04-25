@@ -70,6 +70,7 @@ export async function createInquiry(
       body: input.body,
       category: [input.category],
       status: ["pending"],
+      ...(input.lineUserId ? { lineUserId: input.lineUserId } : {}),
     },
     isDraft: true,
   });
