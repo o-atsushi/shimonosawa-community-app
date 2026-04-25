@@ -1,5 +1,5 @@
 import { client } from "@/lib/microcms";
-import type { Task, TaskCms, TaskContent, TaskStatus } from "@/types";
+import type { Task, TaskCms, TaskStatus } from "@/types";
 
 function formatTask(c: TaskCms): Task {
   return {
@@ -15,14 +15,21 @@ function formatTask(c: TaskCms): Task {
 
 export async function getTasks(): Promise<Task[]> {
   if (!client) return [];
-  const res = await client.getList<TaskCms>({
-    endpoint: "tasks",
-    queries: {
-      orders: "-publishedAt",
-      limit: 100,
-    },
-  });
-  return res.contents.map(formatTask);
+  try {
+    const res = await client.getList<TaskCms>({
+      endpoint: "tasks",
+      queries: {
+        orders: "-publishedAt",
+        limit: 100,
+      },
+    });
+    return res.contents.map(formatTask);
+  } catch (err) {
+    // microCMS 側に tasks API がまだ無い場合 (404) もここに来る。
+    // 空配列を返してビルドを失敗させない (役員が後でAPI作成する想定)。
+    console.warn("[tasks] getTasks failed, returning empty list", err);
+    return [];
+  }
 }
 
 export async function getTask(id: string): Promise<Task | undefined> {
