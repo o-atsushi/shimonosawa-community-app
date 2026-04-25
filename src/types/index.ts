@@ -39,12 +39,18 @@ export interface FormattedArticle {
   pdf?: PdfAttachment;
 }
 
+// ホーム画面のカテゴリカードに表示するエントリのID。
+// articles の Category (news/events/life) に加えて、独自ページへの導線も持つ。
+export type HomeCategoryId = Category | "tasks";
+
 export interface CategoryInfo {
-  id: Category;
+  id: HomeCategoryId;
   label: string;
   icon: string;
   description: string;
   color: string;
+  // カードの遷移先パス。未指定の場合は `/${id}` に遷移する
+  href?: string;
 }
 
 // ===== 要望・質問掲示板 =====
@@ -93,3 +99,44 @@ export interface InquiryContent {
 }
 
 export type InquiryCms = InquiryContent & MicroCMSListContent;
+
+// ===== 新自治会設立 課題一覧 =====
+
+export type TaskStatus = "open" | "in_progress" | "resolved";
+
+// microCMS のスキーマに対応する型 (status は単一選択フィールドだが配列で返る)
+export interface TaskContent {
+  title: string;
+  summary: string;
+  body: string; // リッチエディタ (HTML)
+  status: [TaskStatus];
+}
+
+export type TaskCms = TaskContent & MicroCMSListContent;
+
+// フロントエンド用に整形した型
+export interface Task {
+  id: string;
+  title: string;
+  summary: string;
+  body: string;
+  status: TaskStatus;
+  publishedAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+}
+
+// ===== 課題ごとのコメント (Supabase) =====
+
+export interface Comment {
+  id: string;
+  taskId: string;
+  body: string;
+  createdAt: string; // ISO date string
+  // line_user_id は識別目的のみで、API レスポンスには含めない
+}
+
+export interface CommentInput {
+  taskId: string;
+  body: string;
+  lineUserId: string;
+}

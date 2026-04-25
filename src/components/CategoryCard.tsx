@@ -11,7 +11,7 @@ export default function CategoryCard({
 }) {
   return (
     <Link
-      href={`/${category.id === "news" ? "news" : category.id}`}
+      href={category.href ?? `/${category.id}`}
       className="relative flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
     >
       <div
