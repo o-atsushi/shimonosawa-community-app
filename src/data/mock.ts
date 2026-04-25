@@ -22,6 +22,14 @@ export const categories: CategoryInfo[] = [
     description: "ゴミ出し・届出・施設",
     color: "bg-green-500",
   },
+  {
+    id: "tasks",
+    label: "課題",
+    icon: "📋",
+    description: "新自治会設立の課題",
+    color: "bg-purple-500",
+    href: "/tasks",
+  },
 ];
 
 export const mockArticles: FormattedArticle[] = [
