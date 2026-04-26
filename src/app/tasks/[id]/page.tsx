@@ -4,7 +4,13 @@ import ArticleBody from "@/components/ArticleBody";
 import CommentForm from "@/components/CommentForm";
 import CommentList from "@/components/CommentList";
 import { getCommentsByTaskId } from "@/lib/comments";
-import { TASK_STATUS_COLORS, TASK_STATUS_LABELS, getTask } from "@/lib/tasks";
+import {
+  TASK_PRIORITY_COLORS,
+  TASK_PRIORITY_LABELS,
+  TASK_STATUS_COLORS,
+  TASK_STATUS_LABELS,
+  getTask,
+} from "@/lib/tasks";
 
 export const revalidate = 30;
 
@@ -46,11 +52,25 @@ export default async function TaskDetailPage({
           >
             {TASK_STATUS_LABELS[task.status]}
           </span>
+          {task.priority && (
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full font-medium ${TASK_PRIORITY_COLORS[task.priority]}`}
+            >
+              {TASK_PRIORITY_LABELS[task.priority]}
+            </span>
+          )}
           <span className="text-xs text-gray-400 ml-auto">
             最終更新 {formatDateTime(task.updatedAt)}
           </span>
         </div>
-        <h1 className="text-lg font-bold text-gray-800 mb-2">{task.title}</h1>
+        <h1 className="text-lg font-bold text-gray-800 mb-2">
+          {task.displayOrder !== undefined && (
+            <span className="text-gray-400 font-normal mr-1.5">
+              #{task.displayOrder}
+            </span>
+          )}
+          {task.title}
+        </h1>
         <p className="text-sm text-gray-600 mb-3">{task.summary}</p>
         <ArticleBody html={task.body} />
       </article>
