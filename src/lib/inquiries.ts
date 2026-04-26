@@ -25,17 +25,28 @@ function formatInquiry(c: InquiryCms): Inquiry {
           respondedBy: c.respondedBy!,
         }
       : undefined,
+    // 投稿者識別子をクライアントに渡し、本人のみ削除ボタンを出せるようにする
+    lineUserId: c.lineUserId,
   };
 }
+
+// ソフトデリート済み (isDeleted=true) を一覧/詳細から除外する microCMS フィルタ
+const NOT_DELETED_FILTER = "isDeleted[not_equals]true";
 
 export async function getInquiries(
   category?: InquiryCategory
 ): Promise<Inquiry[]> {
   if (!client) return [];
+  const filters = [
+    NOT_DELETED_FILTER,
+    category ? `category[contains]${category}` : "",
+  ]
+    .filter(Boolean)
+    .join("[and]");
   const res = await client.getList<InquiryCms>({
     endpoint: "inquiries",
     queries: {
-      filters: category ? `category[contains]${category}` : undefined,
+      filters,
       orders: "-publishedAt",
       limit: 100,
     },
@@ -50,7 +61,34 @@ export async function getInquiry(id: string): Promise<Inquiry | undefined> {
       endpoint: "inquiries",
       contentId: id,
     });
+    if (c.isDeleted) return undefined;
     return formatInquiry(c);
+  } catch {
+    return undefined;
+  }
+}
+
+// 投稿者本人のみが呼べるソフトデリート。所有権の検証は呼び出し側 (Route Handler) で行う。
+export async function softDeleteInquiry(id: string): Promise<void> {
+  if (!client) {
+    throw new Error("microCMS client is not configured");
+  }
+  await client.update<Pick<InquiryContent, "isDeleted">>({
+    endpoint: "inquiries",
+    contentId: id,
+    content: { isDeleted: true },
+  });
+}
+
+// 所有権チェック用 (Route Handler 内で呼ぶ)
+export async function getInquiryLineUserId(id: string): Promise<string | undefined> {
+  if (!client) return undefined;
+  try {
+    const c = await client.get<InquiryCms>({
+      endpoint: "inquiries",
+      contentId: id,
+    });
+    return c.lineUserId;
   } catch {
     return undefined;
   }

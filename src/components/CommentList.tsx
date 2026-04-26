@@ -1,3 +1,4 @@
+import DeleteOwnPostButton from "@/components/DeleteOwnPostButton";
 import type { Comment } from "@/types";
 
 function formatDateTime(iso: string): string {
@@ -39,6 +40,15 @@ export default function CommentList({ comments }: { comments: Comment[] }) {
           <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
             {comment.body}
           </p>
+          <div className="flex justify-end mt-2">
+            <DeleteOwnPostButton
+              ownerLineUserId={comment.lineUserId}
+              endpoint={`/api/comments/${comment.id}`}
+              extraBody={{ taskId: comment.taskId }}
+              confirmMessage="このコメントを削除しますか?"
+              label="削除"
+            />
+          </div>
         </article>
       ))}
     </div>
