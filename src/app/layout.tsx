@@ -5,7 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import LiffProvider from "@/components/LiffProvider";
 
 export const metadata: Metadata = {
-  title: "野州シモノサワCommunity 下ノ沢情報ポータル",
+  title: "野州シモノサワCommunity",
   description: "下ノ沢自治会からの情報をお届けするLINEアプリです",
 };
 
