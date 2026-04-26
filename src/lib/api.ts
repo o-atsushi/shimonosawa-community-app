@@ -8,14 +8,17 @@ import type {
 } from "@/types";
 
 // microCMS のレスポンスをフロント用に整形
+// category が空配列など、想定外フィールド欠落でも例外を出さないよう全てに既定値
 function formatArticle(article: Article): FormattedArticle {
+  const isoDate =
+    article.publishedAt ?? article.createdAt ?? new Date().toISOString();
   return {
     id: article.id,
-    title: article.title,
-    summary: article.summary,
-    content: article.content,
-    category: article.category[0],
-    date: article.publishedAt?.split("T")[0] ?? article.createdAt.split("T")[0],
+    title: article.title ?? "",
+    summary: article.summary ?? "",
+    content: article.content ?? "",
+    category: article.category?.[0] ?? "news",
+    date: isoDate.split("T")[0],
     imageUrl: article.image?.url,
     important: article.important ?? false,
     pdf: article.pdfUrl
@@ -65,7 +68,9 @@ export async function getArticleById(
       contentId: id,
     });
     return formatArticle(article);
-  } catch {
+  } catch (err) {
+    // 404 (記事なし)、ネットワーク失敗、formatArticle 内の例外などを全て吸収
+    console.warn("[articles] getArticleById failed", err);
     return undefined;
   }
 }
