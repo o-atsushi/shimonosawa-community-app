@@ -1,4 +1,4 @@
-import TaskCard from "@/components/TaskCard";
+import TaskListWithFilter from "@/components/TaskListWithFilter";
 import { getTasks } from "@/lib/tasks";
 
 export const revalidate = 60;
@@ -18,11 +18,7 @@ export default async function TasksPage() {
           まだ課題は登録されていません。
         </div>
       ) : (
-        <div className="space-y-3">
-          {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
-          ))}
-        </div>
+        <TaskListWithFilter tasks={tasks} />
       )}
     </div>
   );
