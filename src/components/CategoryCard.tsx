@@ -21,7 +21,9 @@ export default function CategoryCard({
       </div>
       <div>
         <p className="font-bold text-gray-800">{category.label}</p>
-        <p className="text-xs text-gray-500">{category.description}</p>
+        {category.description && (
+          <p className="text-xs text-gray-500">{category.description}</p>
+        )}
       </div>
       {badge ? (
         <span className="absolute top-2 right-2">{badge}</span>
