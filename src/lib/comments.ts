@@ -19,16 +19,23 @@ function formatComment(row: CommentRow): Comment {
 
 export async function getCommentsByTaskId(taskId: string): Promise<Comment[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("comments")
-    .select("id, task_id, body, created_at")
-    .eq("task_id", taskId)
-    .order("created_at", { ascending: false });
-  if (error) {
-    console.error("[comments] getCommentsByTaskId failed", error);
+  try {
+    const { data, error } = await supabase
+      .from("comments")
+      .select("id, task_id, body, created_at")
+      .eq("task_id", taskId)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("[comments] getCommentsByTaskId returned error", error);
+      return [];
+    }
+    return (data ?? []).map(formatComment);
+  } catch (err) {
+    // Supabase URL が誤設定 / プロジェクト一時停止 / ネットワーク不通の場合
+    // 例外が直接 throw されるためここでキャッチしてページの500を防ぐ
+    console.error("[comments] getCommentsByTaskId threw", err);
     return [];
   }
-  return (data ?? []).map(formatComment);
 }
 
 export async function createComment(input: CommentInput): Promise<{ id: string }> {
