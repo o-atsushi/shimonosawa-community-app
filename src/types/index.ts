@@ -72,6 +72,9 @@ export interface Inquiry {
   createdAt: string; // ISO date string
   status: InquiryStatus;
   response?: InquiryResponse;
+  // 投稿者識別子。クライアントが「自分の投稿か」を判定するために返す。
+  // ソフトデリート済みの投稿は一覧/詳細から除外されるため、ここに入らない
+  lineUserId?: string;
 }
 
 export interface InquiryInput {
@@ -96,6 +99,8 @@ export interface InquiryContent {
   respondedBy?: string;
   // 投稿者の LINE userId (Phase 3 の通知送信用、画面には表示しない)
   lineUserId?: string;
+  // 投稿者によるソフトデリートフラグ
+  isDeleted?: boolean;
 }
 
 export type InquiryCms = InquiryContent & MicroCMSListContent;
@@ -143,7 +148,9 @@ export interface Comment {
   taskId: string;
   body: string;
   createdAt: string; // ISO date string
-  // line_user_id は識別目的のみで、API レスポンスには含めない
+  // 投稿者識別子。クライアントが「自分のコメントか」を判定するために返す。
+  // ソフトデリート済みのコメントは一覧から除外されるため、ここに入らない
+  lineUserId?: string;
 }
 
 export interface CommentInput {

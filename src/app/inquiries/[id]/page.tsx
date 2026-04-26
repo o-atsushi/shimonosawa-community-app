@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import DeleteOwnPostButton from "@/components/DeleteOwnPostButton";
 import { getInquiry } from "@/lib/inquiries";
 import {
   INQUIRY_CATEGORY_COLORS,
@@ -62,7 +63,15 @@ export default async function InquiryDetailPage({
         <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
           {inquiry.body}
         </p>
-        <p className="text-xs text-gray-400 mt-4">投稿者: 匿名</p>
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-xs text-gray-400">投稿者: 匿名</p>
+          <DeleteOwnPostButton
+            ownerLineUserId={inquiry.lineUserId}
+            endpoint={`/api/inquiries/${inquiry.id}`}
+            confirmMessage="この投稿を削除しますか?"
+            label="この投稿を削除"
+          />
+        </div>
       </article>
 
       {/* 回答 */}

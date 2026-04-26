@@ -6,6 +6,7 @@ interface CommentRow {
   task_id: string;
   body: string;
   created_at: string;
+  line_user_id: string;
 }
 
 function formatComment(row: CommentRow): Comment {
@@ -14,6 +15,7 @@ function formatComment(row: CommentRow): Comment {
     taskId: row.task_id,
     body: row.body,
     createdAt: row.created_at,
+    lineUserId: row.line_user_id,
   };
 }
 
@@ -22,8 +24,9 @@ export async function getCommentsByTaskId(taskId: string): Promise<Comment[]> {
   try {
     const { data, error } = await supabase
       .from("comments")
-      .select("id, task_id, body, created_at")
+      .select("id, task_id, body, created_at, line_user_id")
       .eq("task_id", taskId)
+      .is("deleted_at", null) // ソフトデリート済みは除外
       .order("created_at", { ascending: false });
     if (error) {
       console.error("[comments] getCommentsByTaskId returned error", error);
@@ -56,4 +59,28 @@ export async function createComment(input: CommentInput): Promise<{ id: string }
     throw new Error("コメント投稿に失敗しました");
   }
   return { id: data.id };
+}
+
+// 投稿者本人によるソフトデリート。
+// WHERE 句に line_user_id を入れて他人のコメントを誤更新しないようにする。
+// 戻り値: 削除できた行数 (0 なら所有権なし or 既に削除済み)
+export async function softDeleteComment(
+  id: string,
+  lineUserId: string
+): Promise<number> {
+  if (!supabase) {
+    throw new Error("Supabase client is not configured");
+  }
+  const { data, error } = await supabase
+    .from("comments")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("line_user_id", lineUserId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error) {
+    console.error("[comments] softDeleteComment failed", error);
+    throw new Error("削除に失敗しました");
+  }
+  return (data ?? []).length;
 }
