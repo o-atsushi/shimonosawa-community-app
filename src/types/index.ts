@@ -102,14 +102,23 @@ export type InquiryCms = InquiryContent & MicroCMSListContent;
 
 // ===== 新自治会設立 課題一覧 =====
 
+// 方針が決まったかどうかを示すステータス。
+// open=未着手 / in_progress=検討中 / resolved=方針確定済み (現状の3値の意味付けを変更)
 export type TaskStatus = "open" | "in_progress" | "resolved";
 
-// microCMS のスキーマに対応する型 (status は単一選択フィールドだが配列で返る)
+// 優先度。high=高 / medium=中 / low=低
+export type TaskPriority = "high" | "medium" | "low";
+
+// microCMS のスキーマに対応する型 (セレクト型は単一選択でも配列で返る)
 export interface TaskContent {
   title: string;
   summary: string;
   body: string; // リッチエディタ (HTML)
   status: [TaskStatus];
+  // 役員が新たに設定するフィールド (任意。未設定でも画面は壊れない)
+  priority?: [TaskPriority];
+  // 決めていく順序 (小さいほど先に表示)。同値なら publishedAt 降順
+  displayOrder?: number;
 }
 
 export type TaskCms = TaskContent & MicroCMSListContent;
@@ -121,6 +130,8 @@ export interface Task {
   summary: string;
   body: string;
   status: TaskStatus;
+  priority?: TaskPriority;
+  displayOrder?: number;
   publishedAt: string; // ISO date string
   updatedAt: string; // ISO date string
 }
