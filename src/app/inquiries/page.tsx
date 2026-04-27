@@ -13,9 +13,6 @@ export default async function InquiriesPage() {
       <p className="text-xs text-gray-500 mb-4">
         自治会員からの要望・質問と、自治会役員からの回答を掲載しています。
       </p>
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800 mb-4">
-        ℹ️ 投稿は役員が確認したのち公開されます。投稿直後はすぐに反映されない場合があります。
-      </div>
 
       {inquiries.length === 0 ? (
         <div className="bg-white rounded-xl p-6 text-center text-sm text-gray-500 border border-gray-100">
