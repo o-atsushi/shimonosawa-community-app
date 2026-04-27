@@ -8,11 +8,15 @@ import { getProfile, isLoggedIn } from "@/lib/liff";
 // - target.lineUserId と LIFF の getProfile().userId が一致する場合のみ描画
 // - DELETE リクエストの URL とリクエストボディは呼び出し側で組み立てる
 //   (掲示板投稿は /api/inquiries/[id] / コメントは /api/comments/[id])
+// - 削除成功後の遷移先:
+//   redirectTo > onDeleted > router.refresh() の優先順
+//   詳細ページから削除する場合は redirectTo=一覧URL を渡すと 404 を回避できる
 export default function DeleteOwnPostButton({
   ownerLineUserId,
   endpoint,
   extraBody,
   onDeleted,
+  redirectTo,
   confirmMessage = "本当に削除しますか?",
   label = "削除",
 }: {
@@ -20,6 +24,7 @@ export default function DeleteOwnPostButton({
   endpoint: string;
   extraBody?: Record<string, unknown>;
   onDeleted?: () => void;
+  redirectTo?: string;
   confirmMessage?: string;
   label?: string;
 }) {
@@ -72,7 +77,11 @@ export default function DeleteOwnPostButton({
         setError(data.error ?? "削除に失敗しました");
         return;
       }
-      if (onDeleted) {
+      if (redirectTo) {
+        router.push(redirectTo);
+        // 一覧側で最新状態を取得するため、念のため refresh も呼ぶ
+        router.refresh();
+      } else if (onDeleted) {
         onDeleted();
       } else {
         router.refresh();
