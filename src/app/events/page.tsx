@@ -1,6 +1,8 @@
 import ArticleCard from "@/components/ArticleCard";
 import { getArticles } from "@/lib/api";
 
+export const revalidate = 60;
+
 export default async function EventsPage() {
   const articles = await getArticles("events");
 

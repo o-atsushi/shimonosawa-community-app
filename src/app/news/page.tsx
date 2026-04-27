@@ -2,6 +2,8 @@ import ArticleCard from "@/components/ArticleCard";
 import MarkArticlesVisitedOnMount from "@/components/MarkArticlesVisitedOnMount";
 import { getArticles } from "@/lib/api";
 
+export const revalidate = 60;
+
 export default async function NewsPage() {
   const articles = await getArticles("news");
 
