@@ -68,6 +68,7 @@ export default async function InquiryDetailPage({
           <DeleteOwnPostButton
             ownerLineUserId={inquiry.lineUserId}
             endpoint={`/api/inquiries/${inquiry.id}`}
+            redirectTo="/inquiries"
             confirmMessage="この投稿を削除しますか?"
             label="この投稿を削除"
           />
