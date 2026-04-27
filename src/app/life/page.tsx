@@ -1,6 +1,8 @@
 import { getArticles } from "@/lib/api";
 import ArticleBody from "@/components/ArticleBody";
 
+export const revalidate = 60;
+
 export default async function LifePage() {
   const articles = await getArticles("life");
 
