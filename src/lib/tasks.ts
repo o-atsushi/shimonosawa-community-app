@@ -1,6 +1,15 @@
 import { client } from "@/lib/microcms";
 import type { Task, TaskCms, TaskPriority, TaskStatus } from "@/types";
 
+// 改行区切りの投票選択肢を配列にパース。空白行と前後空白は除去。
+function parseVoteOptions(raw?: string): string[] {
+  if (!raw) return [];
+  return raw
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function formatTask(c: TaskCms): Task {
   return {
     id: c.id,
@@ -10,6 +19,7 @@ function formatTask(c: TaskCms): Task {
     status: c.status?.[0] ?? "open",
     priority: c.priority?.[0],
     displayOrder: c.displayOrder,
+    voteOptions: parseVoteOptions(c.voteOptionsRaw),
     publishedAt: c.publishedAt ?? c.createdAt,
     updatedAt: c.updatedAt,
   };
