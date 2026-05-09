@@ -5,9 +5,12 @@ import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/", label: "ホーム", icon: "🏠" },
+  // 新設課題: ホーム右隣に置いて目立たせる
+  { href: "/tasks", label: "新設課題", icon: "🎯" },
   { href: "/news", label: "お知らせ", icon: "📢" },
   { href: "/events", label: "イベント", icon: "🎉" },
-  { href: "/inquiries", label: "掲示板", icon: "💬" },
+  // 掲示板はミニマム運用のため一時非活性。再開時はこちらと /inquiries へのリンクを戻す
+  // { href: "/inquiries", label: "掲示板", icon: "💬" },
   { href: "/life", label: "生活", icon: "📋" },
 ];
 
