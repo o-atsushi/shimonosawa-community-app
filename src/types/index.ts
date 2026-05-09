@@ -127,6 +127,8 @@ export interface TaskContent {
   // 投票選択肢 (改行区切り)。空または未設定なら投票機能は表示しない
   // 例: "賛成\n反対\nどちらでもない"
   voteOptionsRaw?: string;
+  // 投票期限 (ISO date string)。未設定なら無期限
+  voteDeadline?: string;
 }
 
 export type TaskCms = TaskContent & MicroCMSListContent;
@@ -142,6 +144,8 @@ export interface Task {
   displayOrder?: number;
   // パース後の投票選択肢。空配列なら投票機能なし
   voteOptions: string[];
+  // 投票期限 (ISO date string)。未設定なら無期限
+  voteDeadline?: string;
   publishedAt: string; // ISO date string
   updatedAt: string; // ISO date string
 }
@@ -153,6 +157,14 @@ export interface Task {
 export interface VoteSummary {
   total: number;
   counts: Record<string, number>; // option name → count
+}
+
+// 投票理由 (匿名表示用)。option ごとに自由記述の声を一覧表示する。
+// line_user_id はクライアントには返さない (匿名性)。
+export interface VoteReasonItem {
+  option: string;
+  reason: string;
+  createdAt: string;
 }
 
 // ===== 課題ごとのコメント (Supabase) =====

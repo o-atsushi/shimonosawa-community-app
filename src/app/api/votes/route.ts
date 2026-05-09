@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { castVote } from "@/lib/votes";
-import { getTask } from "@/lib/tasks";
+import { getTask, isVoteClosed, requiresReason } from "@/lib/tasks";
 
 const LINE_USER_ID_PATTERN = /^U[0-9a-f]{32}$/;
+const REASON_MAX = 200;
 
 // 投票 / 変更 (UPSERT)。1人1票で何度でも変更可能。
 // taskId と selectedOption は microCMS 側の voteOptions に含まれる文字列であることを
 // サーバー側で検証してから upsert する。
 export async function POST(request: Request) {
-  let body: { taskId?: string; lineUserId?: string; selectedOption?: string };
+  let body: {
+    taskId?: string;
+    lineUserId?: string;
+    selectedOption?: string;
+    reason?: string;
+  };
   try {
     body = await request.json();
   } catch {
@@ -19,7 +25,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { taskId, lineUserId, selectedOption } = body;
+  const { taskId, lineUserId, selectedOption, reason } = body;
 
   if (!taskId || typeof taskId !== "string") {
     return NextResponse.json(
@@ -46,6 +52,15 @@ export async function POST(request: Request) {
     );
   }
 
+  const trimmedReason =
+    typeof reason === "string" ? reason.trim() : "";
+  if (trimmedReason.length > REASON_MAX) {
+    return NextResponse.json(
+      { error: `理由は${REASON_MAX}文字以内で入力してください` },
+      { status: 400 }
+    );
+  }
+
   // 課題に紐づく公式の選択肢に含まれるかどうかを検証
   const task = await getTask(taskId);
   if (!task) {
@@ -60,9 +75,28 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+  // 期限切れの場合は受け付けない
+  if (isVoteClosed(task.voteDeadline)) {
+    return NextResponse.json(
+      { error: "投票期限を過ぎました" },
+      { status: 403 }
+    );
+  }
+  // 「反対」を含む選択肢では理由必須
+  if (requiresReason(selectedOption) && trimmedReason.length === 0) {
+    return NextResponse.json(
+      { error: "反対の場合は理由を入力してください" },
+      { status: 400 }
+    );
+  }
 
   try {
-    await castVote(taskId, lineUserId, selectedOption);
+    await castVote(
+      taskId,
+      lineUserId,
+      selectedOption,
+      trimmedReason.length > 0 ? trimmedReason : null
+    );
     revalidatePath(`/tasks/${taskId}`);
     return NextResponse.json({ ok: true });
   } catch (err) {

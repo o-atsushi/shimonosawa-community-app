@@ -3,9 +3,10 @@ import Link from "next/link";
 import ArticleBody from "@/components/ArticleBody";
 import CommentForm from "@/components/CommentForm";
 import CommentList from "@/components/CommentList";
+import VoteReasonsList from "@/components/VoteReasonsList";
 import VotingPanel from "@/components/VotingPanel";
 import { getCommentsByTaskId } from "@/lib/comments";
-import { getVoteSummary } from "@/lib/votes";
+import { getVoteReasons, getVoteSummary } from "@/lib/votes";
 import {
   TASK_PRIORITY_COLORS,
   TASK_PRIORITY_LABELS,
@@ -30,11 +31,12 @@ export default async function TaskDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  // 課題本体・コメント・投票集計を並列取得
-  const [task, comments, voteSummary] = await Promise.all([
+  // 課題本体・コメント・投票集計・投票理由を並列取得
+  const [task, comments, voteSummary, voteReasons] = await Promise.all([
     getTask(id),
     getCommentsByTaskId(id),
     getVoteSummary(id),
+    getVoteReasons(id),
   ]);
 
   if (!task) return notFound();
@@ -84,8 +86,15 @@ export default async function TaskDetailPage({
           <VotingPanel
             taskId={task.id}
             voteOptions={task.voteOptions}
+            voteDeadline={task.voteDeadline}
             summary={voteSummary}
           />
+        </section>
+      )}
+
+      {hasVoting && voteReasons.length > 0 && (
+        <section className="mb-6">
+          <VoteReasonsList reasons={voteReasons} />
         </section>
       )}
 

@@ -3,11 +3,8 @@ import { getOwnVote } from "@/lib/votes";
 
 const LINE_USER_ID_PATTERN = /^U[0-9a-f]{32}$/;
 
-// 自分の投票 (選択肢) を取得。Server Component では viewer 不明のため
+// 自分の投票 (選択肢 + 理由) を取得。Server Component では viewer 不明のため
 // クライアントから fetch する。
-// セキュリティ: line_user_id は本人申告。改ざん可能だが、自分の投票だけ
-// 取得する API なので影響は「他人の投票結果を取得できる」ことだが、これは
-// 元々 getVoteSummary と同等の情報なので問題ない。
 export async function POST(request: Request) {
   let body: { taskId?: string; lineUserId?: string };
   try {
@@ -31,6 +28,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
   }
 
-  const selectedOption = await getOwnVote(taskId, lineUserId);
-  return NextResponse.json({ selectedOption });
+  const own = await getOwnVote(taskId, lineUserId);
+  return NextResponse.json({
+    selectedOption: own?.selectedOption ?? null,
+    reason: own?.reason ?? null,
+  });
 }
