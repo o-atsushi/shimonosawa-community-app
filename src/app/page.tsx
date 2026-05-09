@@ -3,12 +3,18 @@ import CategoryCard from "@/components/CategoryCard";
 import ArticleCard from "@/components/ArticleCard";
 import ArticlesBadge from "@/components/ArticlesBadge";
 import InquiryCard from "@/components/InquiryCard";
-import TaskCard from "@/components/TaskCard";
 import { getArticles, getCategories, getLatestArticles } from "@/lib/api";
 import { getInquiries } from "@/lib/inquiries";
-import { getTasks } from "@/lib/tasks";
+import {
+  TASK_STATUS_COLORS,
+  TASK_STATUS_LABELS,
+  getTasks,
+} from "@/lib/tasks";
+import type { TaskStatus } from "@/types";
 
 export const revalidate = 60;
+
+const STATUS_ORDER: TaskStatus[] = ["open", "in_progress", "resolved"];
 
 export default async function Home() {
   const categories = getCategories();
@@ -22,8 +28,15 @@ export default async function Home() {
   const latestInquiries = allInquiries.slice(0, 3);
   // 「課題」はホーム上部のヒーローで強調表示するため、カテゴリカードからは除外する
   const otherCategories = categories.filter((c) => c.id !== "tasks");
-  const featuredTasks = allTasks.slice(0, 3);
   const newsPublishedAtList = newsArticles.map((a) => a.date);
+
+  // ステータスごとの件数を集計 (ヒーローの軽量サマリ表示用)
+  const taskStatusCounts: Record<TaskStatus, number> = {
+    open: 0,
+    in_progress: 0,
+    resolved: 0,
+  };
+  for (const t of allTasks) taskStatusCounts[t.status] += 1;
 
   return (
     <div className="space-y-6">
@@ -43,14 +56,26 @@ export default async function Home() {
         <p className="text-xs text-gray-600 mb-3">
           現在検討中の課題に投票・コメントで参加いただけます。
         </p>
-        {featuredTasks.length === 0 ? (
+        {allTasks.length === 0 ? (
           <div className="bg-white/70 rounded-xl p-4 text-center text-sm text-gray-500 border border-green-100">
             まだ課題は登録されていません。
           </div>
         ) : (
-          <div className="space-y-3">
-            {featuredTasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
+          <div className="grid grid-cols-3 gap-2">
+            {STATUS_ORDER.map((s) => (
+              <Link
+                key={s}
+                href="/tasks"
+                className={`flex flex-col items-center justify-center rounded-lg py-2.5 hover:opacity-80 transition-opacity ${TASK_STATUS_COLORS[s]}`}
+              >
+                <span className="text-xs font-medium">
+                  {TASK_STATUS_LABELS[s]}
+                </span>
+                <span className="text-lg font-bold leading-tight">
+                  {taskStatusCounts[s]}
+                  <span className="text-xs font-normal ml-0.5">件</span>
+                </span>
+              </Link>
             ))}
           </div>
         )}
