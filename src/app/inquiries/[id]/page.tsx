@@ -37,7 +37,7 @@ export default async function InquiryDetailPage({
         href="/inquiries"
         className="text-green-600 text-sm mb-4 inline-block hover:underline"
       >
-        ← 掲示板に戻る
+        ← 要望一覧に戻る
       </Link>
 
       {/* 投稿 */}

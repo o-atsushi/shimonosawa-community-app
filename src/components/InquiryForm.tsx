@@ -3,15 +3,24 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { InquiryCategory } from "@/types";
-import { INQUIRY_CATEGORY_LABELS } from "@/lib/inquiries";
+import {
+  INQUIRY_CATEGORY_DESCRIPTIONS,
+  INQUIRY_CATEGORY_LABELS,
+} from "@/lib/inquiries";
 import { getProfile, isLoggedIn } from "@/lib/liff";
 
-const CATEGORIES: InquiryCategory[] = ["request", "question", "other"];
+const CATEGORIES: InquiryCategory[] = [
+  "operations",
+  "event",
+  "facility",
+  "app",
+  "other",
+];
 const TITLE_MAX = 50;
 const BODY_MAX = 500;
 
 export default function InquiryForm() {
-  const [category, setCategory] = useState<InquiryCategory>("request");
+  const [category, setCategory] = useState<InquiryCategory>("operations");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -77,7 +86,7 @@ export default function InquiryForm() {
           投稿ありがとうございました
         </h2>
         <p className="text-sm text-gray-600 leading-relaxed mb-6">
-          内容を役員が確認のうえ、掲示板に公開します。
+          内容を役員が確認のうえ、要望一覧に公開します。
           <br />
           公開まで少しお時間をいただく場合があります。
         </p>
@@ -85,7 +94,7 @@ export default function InquiryForm() {
           href="/inquiries"
           className="inline-block bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
         >
-          掲示板に戻る
+          要望一覧に戻る
         </Link>
       </div>
     );
@@ -95,29 +104,41 @@ export default function InquiryForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <label className="block text-sm font-bold text-gray-800 mb-2">
-          カテゴリ
+          要望の種類
         </label>
-        <div className="flex gap-2">
-          {CATEGORIES.map((c) => (
-            <label
-              key={c}
-              className={`flex-1 text-center text-sm py-2 rounded-lg border cursor-pointer transition-colors ${
-                category === c
-                  ? "bg-green-600 text-white border-green-600 font-bold"
-                  : "bg-white text-gray-700 border-gray-300"
-              }`}
-            >
-              <input
-                type="radio"
-                name="category"
-                value={c}
-                checked={category === c}
-                onChange={() => setCategory(c)}
-                className="sr-only"
-              />
-              {INQUIRY_CATEGORY_LABELS[c]}
-            </label>
-          ))}
+        <div className="space-y-2">
+          {CATEGORIES.map((c) => {
+            const selected = category === c;
+            return (
+              <label
+                key={c}
+                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  selected
+                    ? "bg-green-50 border-green-600"
+                    : "bg-white border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="category"
+                  value={c}
+                  checked={selected}
+                  onChange={() => setCategory(c)}
+                  className="mt-0.5 accent-green-600"
+                />
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={`text-sm ${selected ? "font-bold text-green-700" : "text-gray-800"}`}
+                  >
+                    {INQUIRY_CATEGORY_LABELS[c]}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {INQUIRY_CATEGORY_DESCRIPTIONS[c]}
+                  </p>
+                </div>
+              </label>
+            );
+          })}
         </div>
       </div>
 
@@ -137,7 +158,7 @@ export default function InquiryForm() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           maxLength={TITLE_MAX}
-          placeholder="例: 公園の遊具が壊れています"
+          placeholder="例: 街灯を追加してほしい"
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           required
         />
@@ -166,9 +187,9 @@ export default function InquiryForm() {
       </div>
 
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 space-y-1">
-        <p>📝 投稿は匿名で掲示板に表示されます。</p>
+        <p>📝 投稿は匿名で一覧に表示されます。</p>
         <p>個人情報は投稿しないようご注意ください。</p>
-        <p>役員の確認後に掲示板へ公開されます。</p>
+        <p>役員の確認後に一覧へ公開されます。</p>
         {lineUserId ? (
           <p>🔔 回答が公開されたら LINE にお知らせが届きます。</p>
         ) : null}

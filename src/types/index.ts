@@ -75,9 +75,20 @@ export interface CategoryInfo {
   href?: string;
 }
 
-// ===== 要望・質問掲示板 =====
+// ===== ご意見・要望掲示板 =====
 
-export type InquiryCategory = "request" | "question" | "other";
+// 投稿カテゴリ:
+// - operations: 自治会の運営自体への要望 (会費・役員・総会など)
+// - event: イベント企画への要望 (清掃活動・お祭りなど)
+// - facility: 設備・環境への要望 (掲示板・遊具・街灯など)
+// - app: この自治会アプリへの要望 (機能追加・改善)
+// - other: その他
+export type InquiryCategory =
+  | "operations"
+  | "event"
+  | "facility"
+  | "app"
+  | "other";
 export type InquiryStatus = "pending" | "in_progress" | "answered";
 
 export interface InquiryResponse {

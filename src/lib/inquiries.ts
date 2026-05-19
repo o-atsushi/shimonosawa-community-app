@@ -115,9 +115,20 @@ export async function createInquiry(
 }
 
 export const INQUIRY_CATEGORY_LABELS: Record<InquiryCategory, string> = {
-  request: "要望",
-  question: "質問",
+  operations: "運営",
+  event: "イベント",
+  facility: "設備",
+  app: "アプリ",
   other: "その他",
+};
+
+// カテゴリ選択時の補足説明 (フォーム用)
+export const INQUIRY_CATEGORY_DESCRIPTIONS: Record<InquiryCategory, string> = {
+  operations: "会費・役員・総会など、自治会運営への要望",
+  event: "清掃活動・お祭りなど、イベント企画への要望",
+  facility: "掲示板・遊具・街灯など、設備・環境への要望",
+  app: "この自治会アプリへの機能追加・改善要望",
+  other: "上記にあてはまらないもの",
 };
 
 export const INQUIRY_STATUS_LABELS = {
@@ -127,8 +138,10 @@ export const INQUIRY_STATUS_LABELS = {
 } as const;
 
 export const INQUIRY_CATEGORY_COLORS: Record<InquiryCategory, string> = {
-  request: "bg-blue-100 text-blue-700",
-  question: "bg-purple-100 text-purple-700",
+  operations: "bg-blue-100 text-blue-700",
+  event: "bg-pink-100 text-pink-700",
+  facility: "bg-amber-100 text-amber-800",
+  app: "bg-indigo-100 text-indigo-700",
   other: "bg-gray-100 text-gray-700",
 };
 

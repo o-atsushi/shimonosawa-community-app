@@ -2,9 +2,8 @@ import Link from "next/link";
 import CategoryCard from "@/components/CategoryCard";
 import ArticleCard from "@/components/ArticleCard";
 import ArticlesBadge from "@/components/ArticlesBadge";
-// 掲示板はミニマム運用のため一時非活性。再開時はこの import と下のセクションを戻す
-// import InquiryCard from "@/components/InquiryCard";
-// import { getInquiries } from "@/lib/inquiries";
+import InquiryCard from "@/components/InquiryCard";
+import { getInquiries } from "@/lib/inquiries";
 import { getArticles, getCategories, getLatestArticles } from "@/lib/api";
 import {
   TASK_STATUS_COLORS,
@@ -19,15 +18,14 @@ const STATUS_ORDER: TaskStatus[] = ["open", "in_progress", "resolved"];
 
 export default async function Home() {
   const categories = getCategories();
-  const [latestArticles, newsArticles, allTasks] = await Promise.all([
-    getLatestArticles(5),
-    getArticles("news"),
-    getTasks(),
-    // 掲示板非活性中。再開時は getInquiries() を Promise.all に戻し
-    // 下の latestInquiries も復活させる
-    // getInquiries(),
-  ]);
-  // const latestInquiries = (allInquiries ?? []).slice(0, 3);
+  const [latestArticles, newsArticles, allTasks, allInquiries] =
+    await Promise.all([
+      getLatestArticles(5),
+      getArticles("news"),
+      getTasks(),
+      getInquiries(),
+    ]);
+  const latestInquiries = allInquiries.slice(0, 3);
   // 「課題」はホーム上部のヒーローで強調表示するため、カテゴリカードからは除外する
   const otherCategories = categories.filter((c) => c.id !== "tasks");
   const newsPublishedAtList = newsArticles.map((a) => a.date);
@@ -100,27 +98,34 @@ export default async function Home() {
         </div>
       </section>
 
-      {/*
-        ===== みんなの掲示板セクション (一時非活性) =====
-        ミニマム運用のためホーム表示を停止。再開時はこのコメントを外して復活させる。
-
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-gray-800">💬 みんなの掲示板</h2>
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-gray-800">💬 ご意見・要望</h2>
+          <Link
+            href="/inquiries"
+            className="text-sm text-green-600 hover:underline"
+          >
+            もっと見る →
+          </Link>
+        </div>
+        {latestInquiries.length === 0 ? (
+          <div className="bg-white rounded-xl p-4 text-center text-sm text-gray-500 border border-gray-100">
+            <p className="mb-2">まだ要望は投稿されていません。</p>
             <Link
-              href="/inquiries"
-              className="text-sm text-green-600 hover:underline"
+              href="/inquiries/new"
+              className="text-green-600 font-bold hover:underline text-xs"
             >
-              もっと見る →
+              ＋ 最初の要望を投稿する
             </Link>
           </div>
+        ) : (
           <div className="space-y-3">
             {latestInquiries.map((inquiry) => (
               <InquiryCard key={inquiry.id} inquiry={inquiry} />
             ))}
           </div>
-        </section>
-      */}
+        )}
+      </section>
 
       <section>
         <h2 className="text-lg font-bold text-gray-800 mb-3">最新情報</h2>

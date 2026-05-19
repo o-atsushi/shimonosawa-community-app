@@ -3,7 +3,13 @@ import { revalidatePath } from "next/cache";
 import { createInquiry } from "@/lib/inquiries";
 import type { InquiryCategory, InquiryInput } from "@/types";
 
-const VALID_CATEGORIES: InquiryCategory[] = ["request", "question", "other"];
+const VALID_CATEGORIES: InquiryCategory[] = [
+  "operations",
+  "event",
+  "facility",
+  "app",
+  "other",
+];
 // LINE userId は "U" 始まりの33文字(Uプラス32文字の16進数)
 const LINE_USER_ID_PATTERN = /^U[0-9a-f]{32}$/;
 
