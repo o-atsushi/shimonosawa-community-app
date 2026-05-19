@@ -1,8 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getArticleById } from "@/lib/api";
+import { getRsvpSummary } from "@/lib/rsvps";
 import ArticleBody from "@/components/ArticleBody";
 import PdfViewer from "@/components/PdfViewer";
+import RsvpPanel from "@/components/RsvpPanel";
+
+// 清掃活動の参加状況など即時反映したいので短めの revalidate
+export const revalidate = 30;
 
 export default async function EventDetailPage({
   params,
@@ -14,6 +19,11 @@ export default async function EventDetailPage({
 
   if (!article) return notFound();
 
+  // RSVP が有効な記事 (清掃活動など) のみ集計を取得
+  const rsvpSummary = article.rsvpEnabled
+    ? await getRsvpSummary(id)
+    : null;
+
   return (
     <div>
       <Link
@@ -22,11 +32,16 @@ export default async function EventDetailPage({
       >
         ← イベント一覧に戻る
       </Link>
-      <article className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+      <article className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-4">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">
             イベント
           </span>
+          {article.rsvpEnabled && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">
+              🧹 参加表明あり
+            </span>
+          )}
           {article.important && (
             <span className="text-xs px-2 py-0.5 rounded-full bg-red-500 text-white font-medium">
               重要
@@ -40,6 +55,10 @@ export default async function EventDetailPage({
         <ArticleBody html={article.content} />
         {article.pdf && <PdfViewer pdf={article.pdf} />}
       </article>
+
+      {article.rsvpEnabled && rsvpSummary && (
+        <RsvpPanel articleId={article.id} summary={rsvpSummary} />
+      )}
     </div>
   );
 }

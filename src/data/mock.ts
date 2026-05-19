@@ -74,6 +74,17 @@ export const mockArticles: FormattedArticle[] = [
     },
   },
   {
+    id: "events-cleanup-may",
+    title: "5月の一斉清掃活動",
+    summary: "5月12日(日) 8:00 集合。下ノ沢全域で清掃を行います。",
+    content:
+      "<p>下ノ沢の一斉清掃活動を行います。</p><h3>日時</h3><p>5月12日（日）8:00〜9:30</p><h3>集合場所</h3><p>下ノ沢公民館前</p><h3>持ち物</h3><ul><li>軍手</li><li>ゴミ袋 (自治会で用意あり)</li><li>飲み物</li></ul><p>当日参加が難しい方は、別日に各自で実施し、本ページから報告をお願いします。</p>",
+    category: "events",
+    date: "2026-05-12",
+    important: false,
+    rsvpEnabled: true,
+  },
+  {
     id: "events-2",
     title: "図書館 春の読書フェア",
     summary: "4月20日〜5月5日。おすすめ本の展示や読み聞かせイベントを開催。",

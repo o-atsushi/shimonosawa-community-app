@@ -28,6 +28,7 @@ function formatArticle(article: Article): FormattedArticle {
           fileSize: article.pdfFileSize,
         }
       : undefined,
+    rsvpEnabled: article.rsvpEnabled ?? false,
   };
 }
 

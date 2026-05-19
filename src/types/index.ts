@@ -21,6 +21,9 @@ export interface ArticleContent {
   pdfUrl?: string;
   pdfFileName?: string;
   pdfFileSize?: number;
+  // RSVP (清掃活動の参加表明) を有効化するか
+  // events カテゴリで清掃活動など、参加状況をトラッキングしたい記事で true にする
+  rsvpEnabled?: boolean;
 }
 
 // microCMS のレスポンス型（id, createdAt, updatedAt 等が自動付与）
@@ -37,6 +40,25 @@ export interface FormattedArticle {
   imageUrl?: string;
   important: boolean;
   pdf?: PdfAttachment;
+  // 清掃活動などで参加表明 (RSVP) を有効化したい場合 true
+  rsvpEnabled?: boolean;
+}
+
+// ===== 清掃活動 RSVP (Supabase cleanup_rsvps) =====
+
+// 参加表明のステータス
+// attending = 参加 / skipping = 不参加 (別日実施予定) / alt_done = 別日実施済み
+export type RsvpResponse = "attending" | "skipping" | "alt_done";
+
+export interface RsvpSummary {
+  total: number;
+  counts: Record<RsvpResponse, number>;
+}
+
+export interface OwnRsvp {
+  response: RsvpResponse;
+  altDate: string | null; // YYYY-MM-DD
+  note: string | null;
 }
 
 // ホーム画面のカテゴリカードに表示するエントリのID。
