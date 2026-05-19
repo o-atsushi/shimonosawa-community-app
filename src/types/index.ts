@@ -44,6 +44,123 @@ export interface FormattedArticle {
   rsvpEnabled?: boolean;
 }
 
+// ===== 会員台帳 / 会費 / 入金 (Supabase) =====
+
+// 会員種別 (ロール)
+// member    = 会員 (戸建て等。個別に会費を支払う。完納でアプリログイン可)
+// associate = 準会員 (賃貸マンション居住者。管理会社が一括徴収するため個別入金管理なし。
+//                     アクセスコード入力でアプリログイン可)
+export type MemberRole = "member" | "associate";
+
+export const MEMBER_ROLE_LABELS: Record<MemberRole, string> = {
+  member: "会員",
+  associate: "準会員",
+};
+
+export const MEMBER_ROLE_COLORS: Record<MemberRole, string> = {
+  member: "bg-emerald-100 text-emerald-800",
+  associate: "bg-sky-100 text-sky-800",
+};
+
+// 会員 (Supabase members テーブル)
+export interface Member {
+  id: string;
+  memberNumber: number; // 自動連番 (会員番号)
+  displayName: string;
+  role: MemberRole;
+  lineUserId: string | null;
+  household: string | null;
+  notes: string | null;
+  isAdmin: boolean;
+  // 入会日 (YYYY-MM-DD)。当年度途中入会の場合に月割計算で利用。
+  // null の場合は「年度始め (4/1) から在籍」とみなす
+  joinedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemberInput {
+  displayName: string;
+  role: MemberRole;
+  lineUserId?: string | null;
+  household?: string | null;
+  notes?: string | null;
+  isAdmin?: boolean;
+  joinedAt?: string | null;
+}
+
+// 年度・種別ごとの会費標準額
+export interface FeeSchedule {
+  id: string;
+  fiscalYear: number;
+  role: MemberRole;
+  amount: number; // 円
+}
+
+export interface FeeScheduleInput {
+  fiscalYear: number;
+  role: MemberRole;
+  amount: number;
+}
+
+// 入金記録
+export interface Payment {
+  id: string;
+  memberId: string;
+  fiscalYear: number;
+  amount: number;
+  paidAt: string; // YYYY-MM-DD
+  method: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface PaymentInput {
+  memberId: string;
+  fiscalYear: number;
+  amount: number;
+  paidAt: string;
+  method?: string | null;
+  notes?: string | null;
+}
+
+// 会員一覧画面で使うサマリ (各会員の今年度入金状況)
+export interface MemberWithPaymentStatus extends Member {
+  // 今年度 (fiscalYear) の入金合計
+  paidThisYear: number;
+  // 標準額 (会費表から)。null なら未設定
+  expectedThisYear: number | null;
+  // "paid" 完納 / "partial" 一部納入 / "unpaid" 未納
+  paymentStatus: "paid" | "partial" | "unpaid";
+}
+
+// アクセスコード (準会員のログイン用)
+export interface AccessCode {
+  id: string;
+  code: string;
+  description: string | null;
+  validUntil: string | null; // YYYY-MM-DD or null (無期限)
+  createdAt: string;
+}
+
+export interface AccessCodeInput {
+  code: string;
+  description?: string | null;
+  validUntil?: string | null;
+}
+
+// サーバー API (/api/auth/check) が返すステータス
+export type ServerAuthStatus =
+  | { kind: "not_registered" } // members に line_user_id がない (新規ユーザー)
+  | { kind: "unpaid"; member: Member; expected: number; paid: number } // 会員だが当年度未納
+  | { kind: "ok"; member: Member };
+
+// クライアント側で扱う認証ステータス (loading / needs_line_login も含む)
+export type AuthStatus =
+  | { kind: "loading" }
+  | { kind: "needs_line_login" }
+  | ServerAuthStatus;
+
 // ===== 清掃活動 RSVP (Supabase cleanup_rsvps) =====
 
 // 参加表明のステータス

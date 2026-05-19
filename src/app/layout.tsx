@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import LiffProvider from "@/components/LiffProvider";
+import AuthGate from "@/components/AuthGate";
 
 export const metadata: Metadata = {
   title: "野州シモノサワCommunity",
@@ -25,7 +26,9 @@ export default function RootLayout({
       <body className="min-h-full bg-gray-50 text-gray-900">
         <LiffProvider>
           <Header />
-          <main className="max-w-lg mx-auto px-4 py-4 pb-20">{children}</main>
+          <main className="max-w-lg mx-auto px-4 py-4 pb-20">
+            <AuthGate>{children}</AuthGate>
+          </main>
           <BottomNav />
         </LiffProvider>
       </body>
