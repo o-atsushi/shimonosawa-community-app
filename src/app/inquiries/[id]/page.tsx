@@ -5,6 +5,8 @@ import { getInquiry } from "@/lib/inquiries";
 import {
   INQUIRY_CATEGORY_COLORS,
   INQUIRY_CATEGORY_LABELS,
+  INQUIRY_KIND_COLORS,
+  INQUIRY_KIND_LABELS,
   INQUIRY_STATUS_COLORS,
   INQUIRY_STATUS_LABELS,
 } from "@/lib/inquiries";
@@ -43,6 +45,11 @@ export default async function InquiryDetailPage({
       {/* 投稿 */}
       <article className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-4">
         <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full font-medium ${INQUIRY_KIND_COLORS[inquiry.kind]}`}
+          >
+            {INQUIRY_KIND_LABELS[inquiry.kind]}
+          </span>
           <span
             className={`text-xs px-2 py-0.5 rounded-full font-medium ${INQUIRY_CATEGORY_COLORS[inquiry.category]}`}
           >

@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { InquiryCategory } from "@/types";
+import type { InquiryCategory, InquiryKind } from "@/types";
 import {
   INQUIRY_CATEGORY_DESCRIPTIONS,
   INQUIRY_CATEGORY_LABELS,
+  INQUIRY_KIND_DESCRIPTIONS,
+  INQUIRY_KIND_LABELS,
 } from "@/lib/inquiries";
 import { getProfile, isLoggedIn } from "@/lib/liff";
 
+const KINDS: InquiryKind[] = ["question", "request"];
 const CATEGORIES: InquiryCategory[] = [
   "operations",
   "event",
@@ -20,6 +23,7 @@ const TITLE_MAX = 50;
 const BODY_MAX = 500;
 
 export default function InquiryForm() {
+  const [kind, setKind] = useState<InquiryKind>("request");
   const [category, setCategory] = useState<InquiryCategory>("operations");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -61,7 +65,7 @@ export default function InquiryForm() {
       const res = await fetch("/api/inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, title, body, lineUserId }),
+        body: JSON.stringify({ kind, category, title, body, lineUserId }),
       });
 
       if (!res.ok) {
@@ -104,7 +108,47 @@ export default function InquiryForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <label className="block text-sm font-bold text-gray-800 mb-2">
-          要望の種類
+          投稿の種別
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          {KINDS.map((k) => {
+            const selected = kind === k;
+            return (
+              <label
+                key={k}
+                className={`flex flex-col items-start gap-1 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  selected
+                    ? "bg-green-50 border-green-600"
+                    : "bg-white border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="kind"
+                    value={k}
+                    checked={selected}
+                    onChange={() => setKind(k)}
+                    className="accent-green-600"
+                  />
+                  <span
+                    className={`text-sm ${selected ? "font-bold text-green-700" : "text-gray-800"}`}
+                  >
+                    {INQUIRY_KIND_LABELS[k]}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 leading-snug">
+                  {INQUIRY_KIND_DESCRIPTIONS[k]}
+                </p>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-bold text-gray-800 mb-2">
+          カテゴリ
         </label>
         <div className="space-y-2">
           {CATEGORIES.map((c) => {
@@ -158,7 +202,11 @@ export default function InquiryForm() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           maxLength={TITLE_MAX}
-          placeholder="例: 街灯を追加してほしい"
+          placeholder={
+            kind === "question"
+              ? "例: 会費はいつまでに払えばいいですか？"
+              : "例: 街灯を追加してほしい"
+          }
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           required
         />

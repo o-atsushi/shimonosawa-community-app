@@ -3,6 +3,8 @@ import type { Inquiry } from "@/types";
 import {
   INQUIRY_CATEGORY_COLORS,
   INQUIRY_CATEGORY_LABELS,
+  INQUIRY_KIND_COLORS,
+  INQUIRY_KIND_LABELS,
   INQUIRY_STATUS_COLORS,
   INQUIRY_STATUS_LABELS,
 } from "@/lib/inquiries";
@@ -18,6 +20,11 @@ export default function InquiryCard({ inquiry }: { inquiry: Inquiry }) {
       className="block rounded-xl bg-white p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
     >
       <div className="flex items-center gap-2 mb-2 flex-wrap">
+        <span
+          className={`text-xs px-2 py-0.5 rounded-full font-medium ${INQUIRY_KIND_COLORS[inquiry.kind]}`}
+        >
+          {INQUIRY_KIND_LABELS[inquiry.kind]}
+        </span>
         <span
           className={`text-xs px-2 py-0.5 rounded-full font-medium ${INQUIRY_CATEGORY_COLORS[inquiry.category]}`}
         >

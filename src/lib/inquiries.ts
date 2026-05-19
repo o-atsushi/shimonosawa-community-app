@@ -5,6 +5,7 @@ import type {
   InquiryCms,
   InquiryContent,
   InquiryInput,
+  InquiryKind,
 } from "@/types";
 
 function formatInquiry(c: InquiryCms): Inquiry {
@@ -14,6 +15,8 @@ function formatInquiry(c: InquiryCms): Inquiry {
     id: c.id,
     title: c.title,
     body: c.body,
+    // 既存データに kind が無い場合は "request" (要望) として扱う (後方互換)
+    kind: c.kind?.[0] ?? "request",
     category: c.category[0],
     status: c.status?.[0] ?? "pending",
     // 公開日時を優先（下書き→公開された時点）、未公開なら createdAt
@@ -106,6 +109,7 @@ export async function createInquiry(
     content: {
       title: input.title,
       body: input.body,
+      kind: [input.kind],
       category: [input.category],
       status: ["pending"],
       ...(input.lineUserId ? { lineUserId: input.lineUserId } : {}),
@@ -113,6 +117,21 @@ export async function createInquiry(
     isDraft: true,
   });
 }
+
+export const INQUIRY_KIND_LABELS: Record<InquiryKind, string> = {
+  question: "質問",
+  request: "要望",
+};
+
+export const INQUIRY_KIND_DESCRIPTIONS: Record<InquiryKind, string> = {
+  question: "わからないことを役員に尋ねたい",
+  request: "こうしてほしい、改善してほしいことがある",
+};
+
+export const INQUIRY_KIND_COLORS: Record<InquiryKind, string> = {
+  question: "bg-purple-100 text-purple-700",
+  request: "bg-blue-100 text-blue-700",
+};
 
 export const INQUIRY_CATEGORY_LABELS: Record<InquiryCategory, string> = {
   operations: "運営",
@@ -122,12 +141,13 @@ export const INQUIRY_CATEGORY_LABELS: Record<InquiryCategory, string> = {
   other: "その他",
 };
 
-// カテゴリ選択時の補足説明 (フォーム用)
+// カテゴリ選択時の補足説明 (フォーム用)。
+// 質問/要望どちらにも使えるよう「〜への要望」のような限定的言い回しは避ける。
 export const INQUIRY_CATEGORY_DESCRIPTIONS: Record<InquiryCategory, string> = {
-  operations: "会費・役員・総会など、自治会運営への要望",
-  event: "清掃活動・お祭りなど、イベント企画への要望",
-  facility: "掲示板・遊具・街灯など、設備・環境への要望",
-  app: "この自治会アプリへの機能追加・改善要望",
+  operations: "会費・役員・総会など、自治会運営について",
+  event: "清掃活動・お祭りなど、イベント企画について",
+  facility: "掲示板・遊具・街灯など、設備・環境について",
+  app: "この自治会アプリの機能について",
   other: "上記にあてはまらないもの",
 };
 

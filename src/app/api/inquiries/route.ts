@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createInquiry } from "@/lib/inquiries";
-import type { InquiryCategory, InquiryInput } from "@/types";
+import type { InquiryCategory, InquiryInput, InquiryKind } from "@/types";
 
+const VALID_KINDS: InquiryKind[] = ["question", "request"];
 const VALID_CATEGORIES: InquiryCategory[] = [
   "operations",
   "event",
@@ -24,13 +25,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const { category, title, body: text, lineUserId } = body;
+  const { kind, category, title, body: text, lineUserId } = body;
   // lineUserId は任意。フォーマットが合わない値は黙って無視する(防御的)
   const safeLineUserId =
     typeof lineUserId === "string" && LINE_USER_ID_PATTERN.test(lineUserId)
       ? lineUserId
       : undefined;
 
+  if (!kind || !VALID_KINDS.includes(kind)) {
+    return NextResponse.json(
+      { error: "種別 (質問 / 要望) を選択してください" },
+      { status: 400 }
+    );
+  }
   if (!category || !VALID_CATEGORIES.includes(category)) {
     return NextResponse.json(
       { error: "カテゴリを選択してください" },
@@ -64,6 +71,7 @@ export async function POST(request: Request) {
 
   try {
     const { id } = await createInquiry({
+      kind,
       category,
       title: title.trim(),
       body: text.trim(),
