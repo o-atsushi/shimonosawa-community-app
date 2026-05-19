@@ -4,6 +4,7 @@ import ArticleCard from "@/components/ArticleCard";
 import ArticlesBadge from "@/components/ArticlesBadge";
 import InquiryCard from "@/components/InquiryCard";
 import { getInquiries } from "@/lib/inquiries";
+import { getLikeCounts } from "@/lib/inquiry-likes";
 import { getArticles, getCategories, getLatestArticles } from "@/lib/api";
 import {
   TASK_STATUS_COLORS,
@@ -26,6 +27,9 @@ export default async function Home() {
       getInquiries(),
     ]);
   const latestInquiries = allInquiries.slice(0, 3);
+  const inquiryLikeCounts = await getLikeCounts(
+    latestInquiries.map((i) => i.id)
+  );
   // 「課題」はホーム上部のヒーローで強調表示するため、カテゴリカードからは除外する
   const otherCategories = categories.filter((c) => c.id !== "tasks");
   const newsPublishedAtList = newsArticles.map((a) => a.date);
@@ -121,7 +125,11 @@ export default async function Home() {
         ) : (
           <div className="space-y-3">
             {latestInquiries.map((inquiry) => (
-              <InquiryCard key={inquiry.id} inquiry={inquiry} />
+              <InquiryCard
+                key={inquiry.id}
+                inquiry={inquiry}
+                likeCount={inquiryLikeCounts[inquiry.id] ?? 0}
+              />
             ))}
           </div>
         )}

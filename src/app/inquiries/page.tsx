@@ -1,11 +1,15 @@
 import Link from "next/link";
 import InquiryCard from "@/components/InquiryCard";
 import { getInquiries } from "@/lib/inquiries";
+import { getLikeCounts } from "@/lib/inquiry-likes";
 
+// いいね数を即時反映したいので revalidate を短めに保つ。
+// (POST 側でも revalidatePath を呼んでいるので投稿者には即時反映)
 export const revalidate = 60;
 
 export default async function InquiriesPage() {
   const inquiries = await getInquiries();
+  const likeCounts = await getLikeCounts(inquiries.map((i) => i.id));
 
   return (
     <div className="relative">
@@ -21,7 +25,11 @@ export default async function InquiriesPage() {
       ) : (
         <div className="space-y-3">
           {inquiries.map((inquiry) => (
-            <InquiryCard key={inquiry.id} inquiry={inquiry} />
+            <InquiryCard
+              key={inquiry.id}
+              inquiry={inquiry}
+              likeCount={likeCounts[inquiry.id] ?? 0}
+            />
           ))}
         </div>
       )}

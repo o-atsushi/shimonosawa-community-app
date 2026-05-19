@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import DeleteOwnPostButton from "@/components/DeleteOwnPostButton";
+import InquiryLikeButton from "@/components/InquiryLikeButton";
 import { getInquiry } from "@/lib/inquiries";
+import { getLikeCount } from "@/lib/inquiry-likes";
 import {
   INQUIRY_CATEGORY_COLORS,
   INQUIRY_CATEGORY_LABELS,
@@ -32,6 +34,8 @@ export default async function InquiryDetailPage({
   const inquiry = await getInquiry(id);
 
   if (!inquiry) return notFound();
+
+  const likeCount = await getLikeCount(inquiry.id);
 
   return (
     <div>
@@ -70,8 +74,15 @@ export default async function InquiryDetailPage({
         <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
           {inquiry.body}
         </p>
-        <div className="flex items-center justify-between mt-4">
-          <p className="text-xs text-gray-400">投稿者: 匿名</p>
+        <div className="flex items-center justify-between mt-4 gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-gray-400">投稿者: 匿名</p>
+            <InquiryLikeButton
+              inquiryId={inquiry.id}
+              initialCount={likeCount}
+              size="md"
+            />
+          </div>
           <DeleteOwnPostButton
             ownerLineUserId={inquiry.lineUserId}
             endpoint={`/api/inquiries/${inquiry.id}`}
@@ -80,6 +91,9 @@ export default async function InquiryDetailPage({
             label="この投稿を削除"
           />
         </div>
+        <p className="text-xs text-gray-400 mt-2">
+          関心がある場合はハートを押してください。みんなの関心の高さの目安になります。
+        </p>
       </article>
 
       {/* 回答 */}
