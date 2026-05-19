@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// 6 アイテム入る想定。横幅が狭いので、各ラベルは 2〜4 文字に収める。
 const navItems = [
   { href: "/", label: "ホーム", icon: "🏠" },
   // 新設課題: ホーム右隣に置いて目立たせる
   { href: "/tasks", label: "新設課題", icon: "🎯" },
   { href: "/news", label: "お知らせ", icon: "📢" },
   { href: "/events", label: "イベント", icon: "🎉" },
-  // 掲示板はミニマム運用のため一時非活性。再開時はこちらと /inquiries へのリンクを戻す
-  // { href: "/inquiries", label: "掲示板", icon: "💬" },
+  { href: "/inquiries", label: "要望", icon: "💬" },
   { href: "/life", label: "生活", icon: "📋" },
 ];
 
@@ -29,14 +29,14 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center py-2 px-2 text-xs transition-colors ${
+              className={`flex flex-col items-center py-2 px-1 text-[10px] transition-colors ${
                 isActive
                   ? "text-green-600 font-bold"
                   : "text-gray-500 hover:text-green-500"
               }`}
             >
-              <span className="text-xl mb-0.5">{item.icon}</span>
-              <span>{item.label}</span>
+              <span className="text-lg mb-0.5">{item.icon}</span>
+              <span className="whitespace-nowrap">{item.label}</span>
             </Link>
           );
         })}

@@ -5,6 +5,7 @@ import type {
   InquiryCms,
   InquiryContent,
   InquiryInput,
+  InquiryKind,
 } from "@/types";
 
 function formatInquiry(c: InquiryCms): Inquiry {
@@ -14,6 +15,8 @@ function formatInquiry(c: InquiryCms): Inquiry {
     id: c.id,
     title: c.title,
     body: c.body,
+    // 既存データに kind が無い場合は "request" (要望) として扱う (後方互換)
+    kind: c.kind?.[0] ?? "request",
     category: c.category[0],
     status: c.status?.[0] ?? "pending",
     // 公開日時を優先（下書き→公開された時点）、未公開なら createdAt
@@ -106,6 +109,7 @@ export async function createInquiry(
     content: {
       title: input.title,
       body: input.body,
+      kind: [input.kind],
       category: [input.category],
       status: ["pending"],
       ...(input.lineUserId ? { lineUserId: input.lineUserId } : {}),
@@ -114,10 +118,37 @@ export async function createInquiry(
   });
 }
 
-export const INQUIRY_CATEGORY_LABELS: Record<InquiryCategory, string> = {
-  request: "要望",
+export const INQUIRY_KIND_LABELS: Record<InquiryKind, string> = {
   question: "質問",
+  request: "要望",
+};
+
+export const INQUIRY_KIND_DESCRIPTIONS: Record<InquiryKind, string> = {
+  question: "わからないことを役員に尋ねたい",
+  request: "こうしてほしい、改善してほしいことがある",
+};
+
+export const INQUIRY_KIND_COLORS: Record<InquiryKind, string> = {
+  question: "bg-purple-100 text-purple-700",
+  request: "bg-blue-100 text-blue-700",
+};
+
+export const INQUIRY_CATEGORY_LABELS: Record<InquiryCategory, string> = {
+  operations: "運営",
+  event: "イベント",
+  facility: "設備",
+  app: "アプリ",
   other: "その他",
+};
+
+// カテゴリ選択時の補足説明 (フォーム用)。
+// 質問/要望どちらにも使えるよう「〜への要望」のような限定的言い回しは避ける。
+export const INQUIRY_CATEGORY_DESCRIPTIONS: Record<InquiryCategory, string> = {
+  operations: "会費・役員・総会など、自治会運営について",
+  event: "清掃活動・お祭りなど、イベント企画について",
+  facility: "掲示板・遊具・街灯など、設備・環境について",
+  app: "この自治会アプリの機能について",
+  other: "上記にあてはまらないもの",
 };
 
 export const INQUIRY_STATUS_LABELS = {
@@ -127,8 +158,10 @@ export const INQUIRY_STATUS_LABELS = {
 } as const;
 
 export const INQUIRY_CATEGORY_COLORS: Record<InquiryCategory, string> = {
-  request: "bg-blue-100 text-blue-700",
-  question: "bg-purple-100 text-purple-700",
+  operations: "bg-blue-100 text-blue-700",
+  event: "bg-pink-100 text-pink-700",
+  facility: "bg-amber-100 text-amber-800",
+  app: "bg-indigo-100 text-indigo-700",
   other: "bg-gray-100 text-gray-700",
 };
 

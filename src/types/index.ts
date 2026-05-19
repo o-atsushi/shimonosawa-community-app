@@ -75,9 +75,23 @@ export interface CategoryInfo {
   href?: string;
 }
 
-// ===== 要望・質問掲示板 =====
+// ===== ご意見・要望掲示板 =====
 
-export type InquiryCategory = "request" | "question" | "other";
+// 投稿の種別: 「質問」か「要望」かを選ばせる
+export type InquiryKind = "question" | "request";
+
+// 投稿カテゴリ (質問/要望共通):
+// - operations: 自治会の運営 (会費・役員・総会など)
+// - event: イベント (清掃活動・お祭りなど)
+// - facility: 設備・環境 (掲示板・遊具・街灯など)
+// - app: この自治会アプリの機能
+// - other: その他
+export type InquiryCategory =
+  | "operations"
+  | "event"
+  | "facility"
+  | "app"
+  | "other";
 export type InquiryStatus = "pending" | "in_progress" | "answered";
 
 export interface InquiryResponse {
@@ -88,6 +102,7 @@ export interface InquiryResponse {
 
 export interface Inquiry {
   id: string;
+  kind: InquiryKind;
   category: InquiryCategory;
   title: string;
   body: string;
@@ -100,6 +115,7 @@ export interface Inquiry {
 }
 
 export interface InquiryInput {
+  kind: InquiryKind;
   category: InquiryCategory;
   title: string;
   body: string;
@@ -114,6 +130,8 @@ export interface InquiryInput {
 export interface InquiryContent {
   title: string;
   body: string;
+  // microCMS のセレクトフィールドは配列で返る
+  kind: [InquiryKind];
   category: [InquiryCategory];
   status: [InquiryStatus];
   responseBody?: string;
