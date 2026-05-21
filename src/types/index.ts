@@ -157,7 +157,8 @@ export type TaskPriority = "high" | "medium" | "low";
 // microCMS のスキーマに対応する型 (セレクト型は単一選択でも配列で返る)
 export interface TaskContent {
   title: string;
-  summary: string;
+  // 概要と本文で書き分け迷いが生じやすかったため summary は廃止し、body 一本化。
+  // microCMS 側でも summary フィールドは未入力で OK (型から外したので参照されない)
   body: string; // リッチエディタ (HTML)
   status: [TaskStatus];
   // 役員が新たに設定するフィールド (任意。未設定でも画面は壊れない)
@@ -177,7 +178,6 @@ export type TaskCms = TaskContent & MicroCMSListContent;
 export interface Task {
   id: string;
   title: string;
-  summary: string;
   body: string;
   status: TaskStatus;
   priority?: TaskPriority;

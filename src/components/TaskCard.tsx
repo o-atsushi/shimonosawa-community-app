@@ -11,7 +11,24 @@ function formatDate(iso: string): string {
   return iso.split("T")[0];
 }
 
+// body は HTML リッチテキストなのでタグを剥がしてプレーン化し、
+// カードのプレビュー用にざっくり 120 文字までに切り詰める。
+// 改行/連続スペースは半角空白 1 つに正規化する。
+function bodyExcerpt(html: string, max = 120): string {
+  const text = html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (text.length <= max) return text;
+  return text.slice(0, max) + "…";
+}
+
 export default function TaskCard({ task }: { task: Task }) {
+  const excerpt = bodyExcerpt(task.body);
   return (
     <Link
       href={`/tasks/${task.id}`}
@@ -42,7 +59,9 @@ export default function TaskCard({ task }: { task: Task }) {
         )}
         {task.title}
       </h3>
-      <p className="text-xs text-gray-500 line-clamp-2">{task.summary}</p>
+      {excerpt && (
+        <p className="text-xs text-gray-500 line-clamp-2">{excerpt}</p>
+      )}
     </Link>
   );
 }

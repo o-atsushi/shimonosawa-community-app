@@ -14,7 +14,6 @@ function formatTask(c: TaskCms): Task {
   return {
     id: c.id,
     title: c.title,
-    summary: c.summary,
     body: c.body,
     status: c.status?.[0] ?? "open",
     priority: c.priority?.[0],
