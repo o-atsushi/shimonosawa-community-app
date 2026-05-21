@@ -12,7 +12,8 @@ export interface PdfAttachment {
 // microCMS のスキーマに対応する型
 export interface ArticleContent {
   title: string;
-  summary: string;
+  // 概要と本文で書き分け迷いが発生していたため summary は廃止し、content 一本化。
+  // microCMS 側でも summary フィールドは未入力で OK (型から外したので参照されない)
   content: string; // リッチエディタ (HTML)
   category: [Category]; // セレクトフィールド
   image?: MicroCMSImage;
@@ -33,7 +34,6 @@ export type Article = ArticleContent & MicroCMSListContent;
 export interface FormattedArticle {
   id: string;
   title: string;
-  summary: string;
   content: string;
   category: Category;
   date: string;

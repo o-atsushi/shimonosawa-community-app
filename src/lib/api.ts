@@ -15,7 +15,6 @@ function formatArticle(article: Article): FormattedArticle {
   return {
     id: article.id,
     title: article.title ?? "",
-    summary: article.summary ?? "",
     content: article.content ?? "",
     category: article.category?.[0] ?? "news",
     date: isoDate.split("T")[0],
