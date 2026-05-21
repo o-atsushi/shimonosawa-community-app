@@ -8,13 +8,28 @@ import type {
   InquiryKind,
 } from "@/types";
 
+// 旧スキーマ (テキストエリア) の投稿は HTML タグを含まないプレーン文字列で
+// 入っている可能性がある。リッチエディタ移行後は描画側が HTML を期待するので、
+// タグが無さそうなものを <p> ... </p> + 改行 → <br> に変換する。
+function normalizeBodyHtml(raw: string | undefined | null): string {
+  if (!raw) return "";
+  // 既にタグが入っていればそのまま (sanitize は描画側 / 保存側で行う)
+  if (/<[a-z][\s\S]*?>/i.test(raw)) return raw;
+  // 旧プレーンテキスト: エスケープしつつ改行を <br> に
+  const escaped = raw
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return `<p>${escaped.replace(/\r?\n/g, "<br>")}</p>`;
+}
+
 function formatInquiry(c: InquiryCms): Inquiry {
   const hasResponse =
     !!c.responseBody && !!c.respondedAt && !!c.respondedBy;
   return {
     id: c.id,
     title: c.title,
-    body: c.body,
+    body: normalizeBodyHtml(c.body),
     // 既存データに kind が無い場合は "request" (要望) として扱う (後方互換)
     kind: c.kind?.[0] ?? "request",
     category: c.category[0],

@@ -10,6 +10,7 @@ import {
   INQUIRY_KIND_LABELS,
 } from "@/lib/inquiries";
 import { getProfile, isLoggedIn } from "@/lib/liff";
+import RichEditor from "@/components/RichEditor";
 
 const KINDS: InquiryKind[] = ["question", "request"];
 const CATEGORIES: InquiryCategory[] = [
@@ -20,7 +21,18 @@ const CATEGORIES: InquiryCategory[] = [
   "other",
 ];
 const TITLE_MAX = 50;
-const BODY_MAX = 500;
+// 本文はリッチエディタ (HTML) なのでタグの分だけ余裕を持たせる。
+// プレーン文字数換算では実質 500〜800 字程度を想定。
+const BODY_MAX_HTML = 5000;
+
+// HTML から空判定するためのヘルパー
+function isHtmlEmpty(html: string): boolean {
+  return html
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .trim()
+    .length === 0;
+}
 
 export default function InquiryForm() {
   const [kind, setKind] = useState<InquiryKind>("request");
@@ -55,8 +67,12 @@ export default function InquiryForm() {
       setError("タイトルを入力してください");
       return;
     }
-    if (body.trim().length === 0) {
+    if (isHtmlEmpty(body)) {
       setError("本文を入力してください");
+      return;
+    }
+    if (body.length > BODY_MAX_HTML) {
+      setError("本文が長すぎます。文章量を減らすか画像を整理してください");
       return;
     }
 
@@ -213,25 +229,23 @@ export default function InquiryForm() {
       </div>
 
       <div>
-        <label
-          htmlFor="body"
-          className="block text-sm font-bold text-gray-800 mb-2"
-        >
+        <label className="block text-sm font-bold text-gray-800 mb-2">
           本文
           <span className="text-xs text-gray-400 font-normal ml-2">
-            {body.length} / {BODY_MAX}
+            画像・太字・見出し・リスト・リンクが使えます
           </span>
         </label>
-        <textarea
-          id="body"
+        <RichEditor
           value={body}
-          onChange={(e) => setBody(e.target.value)}
-          maxLength={BODY_MAX}
-          rows={6}
+          onChange={setBody}
+          lineUserId={lineUserId}
           placeholder="詳しい内容を記入してください"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-          required
         />
+        {!lineUserId && (
+          <p className="text-xs text-gray-400 mt-1">
+            ※ LINE ログインしていない場合は画像の挿入はできません
+          </p>
+        )}
       </div>
 
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-600 space-y-1">

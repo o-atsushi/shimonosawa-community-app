@@ -1,80 +1,31 @@
 import sanitizeHtml from "sanitize-html";
+import {
+  TRUSTED_BODY_SANITIZE,
+  inquiryBodySanitize,
+} from "@/lib/sanitize";
 
 // microCMS のリッチエディタから来る HTML を安全にレンダリングする。
-// 記事入稿者は自治会役員で信頼できるが、多層防御として sanitize を通す。
-// prose クラスで見出し・リスト・リンク等に自然なタイポグラフィを適用する。
+// 入稿者の信頼度に応じて 2 つの sanitize プロファイルを切り替える:
+// - "trusted" (デフォルト): 役員入稿 (articles / tasks)
+// - "untrusted": 住民投稿 (inquiries) — タグ/属性/画像 src を厳しめに絞る
 //
 // sanitize-html (Pure JS) を採用。以前 isomorphic-dompurify を使っていたが
 // jsdom 依存が Next.js 16 / Turbopack の CommonJS バンドルと ESM 互換性で
 // 衝突して 500 エラーになっていたため移行した。
 
-const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
-  // microCMS リッチエディタが使う典型的なタグを許可
-  allowedTags: [
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "p",
-    "div",
-    "br",
-    "hr",
-    "strong",
-    "b",
-    "em",
-    "i",
-    "u",
-    "s",
-    "del",
-    "ins",
-    "blockquote",
-    "code",
-    "pre",
-    "ul",
-    "ol",
-    "li",
-    "a",
-    "img",
-    "figure",
-    "figcaption",
-    "table",
-    "thead",
-    "tbody",
-    "tr",
-    "th",
-    "td",
-    "span",
-  ],
-  allowedAttributes: {
-    a: ["href", "name", "target", "rel"],
-    img: ["src", "alt", "width", "height"],
-    "*": ["class", "id"],
-  },
-  // javascript: などの危険なURIスキームを禁止 (デフォルトで http/https/mailto/tel のみ許可)
-  allowedSchemes: ["http", "https", "mailto", "tel"],
-  // 外部リンクは自動で rel="noopener noreferrer" を付与
-  transformTags: {
-    a: (tagName, attribs) => ({
-      tagName,
-      attribs: {
-        ...attribs,
-        rel: "noopener noreferrer",
-      },
-    }),
-  },
-};
-
 export default function ArticleBody({
   html,
+  variant = "trusted",
 }: {
   html: string | null | undefined;
+  variant?: "trusted" | "untrusted";
 }) {
   if (!html) return null;
   let clean = "";
   try {
-    clean = sanitizeHtml(html, SANITIZE_OPTIONS);
+    const options =
+      variant === "untrusted" ? inquiryBodySanitize() : TRUSTED_BODY_SANITIZE;
+    clean = sanitizeHtml(html, options);
   } catch (err) {
     console.error("[ArticleBody] sanitize failed", err);
     return null;

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import ArticleBody from "@/components/ArticleBody";
 import DeleteOwnPostButton from "@/components/DeleteOwnPostButton";
 import InquiryLikeButton from "@/components/InquiryLikeButton";
 import { getInquiry } from "@/lib/inquiries";
@@ -71,9 +72,7 @@ export default async function InquiryDetailPage({
         <h1 className="text-lg font-bold text-gray-800 mb-3">
           {inquiry.title}
         </h1>
-        <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-          {inquiry.body}
-        </p>
+        <ArticleBody html={inquiry.body} variant="untrusted" />
         <div className="flex items-center justify-between mt-4 gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <p className="text-xs text-gray-400">投稿者: 匿名</p>

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createInquiry } from "@/lib/inquiries";
+import { sanitizeInquiryBody } from "@/lib/sanitize";
 import type { InquiryCategory, InquiryInput, InquiryKind } from "@/types";
+
+// 本文は HTML を許容するので長め。タグの分の余裕を見て 5000 文字まで。
+const BODY_MAX_HTML = 5000;
 
 const VALID_KINDS: InquiryKind[] = ["question", "request"];
 const VALID_CATEGORIES: InquiryCategory[] = [
@@ -56,15 +60,27 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  if (!text || typeof text !== "string" || text.trim().length === 0) {
+  if (!text || typeof text !== "string") {
     return NextResponse.json(
       { error: "本文を入力してください" },
       { status: 400 }
     );
   }
-  if (text.length > 500) {
+  if (text.length > BODY_MAX_HTML) {
     return NextResponse.json(
-      { error: "本文は500文字以内で入力してください" },
+      { error: "本文が長すぎます。文章量を減らすか画像を整理してください" },
+      { status: 400 }
+    );
+  }
+
+  // 本文はリッチエディタからの HTML。
+  // 1) sanitize して安全にする (危険なタグ・属性・許可外画像 src を除去)
+  // 2) その後タグを剥いた残量で空判定 (タグだけの空投稿を弾く)
+  const cleanBody = sanitizeInquiryBody(text);
+  const plainCheck = cleanBody.replace(/<[^>]+>/g, "").trim();
+  if (plainCheck.length === 0) {
+    return NextResponse.json(
+      { error: "本文を入力してください" },
       { status: 400 }
     );
   }
@@ -74,7 +90,7 @@ export async function POST(request: Request) {
       kind,
       category,
       title: title.trim(),
-      body: text.trim(),
+      body: cleanBody,
       lineUserId: safeLineUserId,
     });
 
