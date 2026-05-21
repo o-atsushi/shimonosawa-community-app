@@ -37,7 +37,7 @@ export default async function NewsDetailPage({
         <h1 className="text-lg font-bold text-gray-800 mb-4">
           {article.title}
         </h1>
-        <ArticleBody html={article.content} />
+        <ArticleBody html={article.body} />
         {article.pdf && <PdfViewer pdf={article.pdf} />}
       </article>
     </div>

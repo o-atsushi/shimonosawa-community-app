@@ -24,7 +24,7 @@ export default async function LifePage() {
             <h3 className="font-bold text-gray-800 text-sm mb-2">
               {article.title}
             </h3>
-            <ArticleBody html={article.content} />
+            <ArticleBody html={article.body} />
           </article>
         ))}
       </div>

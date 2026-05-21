@@ -19,7 +19,7 @@ export default function ArticleCard({ article }: { article: FormattedArticle }) 
     article.category === "life"
       ? `/${article.category}`
       : `/${article.category}/${article.id}`;
-  const excerpt = bodyExcerpt(article.content);
+  const excerpt = bodyExcerpt(article.body);
 
   return (
     <Link
