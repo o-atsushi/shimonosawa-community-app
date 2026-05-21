@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Inquiry } from "@/types";
+import { bodyExcerpt } from "@/lib/excerpt";
 import {
   INQUIRY_CATEGORY_COLORS,
   INQUIRY_CATEGORY_LABELS,
@@ -51,7 +52,9 @@ export default function InquiryCard({
       <h3 className="font-bold text-gray-800 text-sm leading-snug mb-1">
         {inquiry.title}
       </h3>
-      <p className="text-xs text-gray-500 line-clamp-2">{inquiry.body}</p>
+      <p className="text-xs text-gray-500 line-clamp-2">
+        {bodyExcerpt(inquiry.body)}
+      </p>
       <div className="flex items-center justify-between mt-3 gap-2">
         {inquiry.response ? (
           <p className="text-xs text-green-700 flex items-center gap-1">
