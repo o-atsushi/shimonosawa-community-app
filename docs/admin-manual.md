@@ -258,12 +258,57 @@ microCMS には「PDF の URL」だけを書きます。
 
 Supabase 管理画面で以下を 1 回だけ作成してください。
 
-1. **Storage → New bucket**
-   - Name: `inquiry-images`
-   - Public bucket: **ON** (公開バケット)
-2. **Policies** (RLS)
-   - SELECT: 全員許可 (公開バケットなら自動で OK)
-   - INSERT: anon に許可 (API 経由で住民がアップロードできるようにする)
+#### ① バケットを作る
+1. 左サイドバー **Storage** をクリック
+2. **「New bucket」** を押す
+3. 以下を入力:
+   - **Name**: `inquiry-images`
+   - **Public bucket**: **ON** (これで公開閲覧が可能になる)
+4. **Save** を押す
+
+#### ② ポリシー (Policies) を作る
+
+**おすすめ: SQL で一気に設定する**
+
+左サイドバー **SQL Editor** を開き、以下を貼り付けて **Run** を押します。
+
+```sql
+-- INSERT 用ポリシー (住民が画像を投稿できるように)
+create policy "Allow anon insert to inquiry-images"
+  on storage.objects for insert
+  to anon
+  with check (bucket_id = 'inquiry-images');
+
+-- SELECT 用ポリシー (住民・役員が画像を見られるように)
+create policy "Allow public read of inquiry-images"
+  on storage.objects for select
+  to anon
+  using (bucket_id = 'inquiry-images');
+```
+
+**「Success. No rows returned」** が出れば完了です。
+
+<details>
+<summary>UI で操作したい場合 (クリックして展開)</summary>
+
+1. **Storage → `inquiry-images` バケット → Policies** タブを開く
+2. **「New policy」** → **「For full customization」**
+3. 1 つ目 (INSERT):
+   - Policy name: `Allow anon insert to inquiry-images`
+   - Allowed operation: **INSERT**
+   - Target roles: **anon**
+   - WITH CHECK: `bucket_id = 'inquiry-images'`
+4. 同じ手順で 2 つ目 (SELECT):
+   - Policy name: `Allow public read of inquiry-images`
+   - Allowed operation: **SELECT**
+   - Target roles: **anon**
+   - USING: `bucket_id = 'inquiry-images'`
+
+</details>
+
+#### ③ 確認
+Storage → `inquiry-images` → Policies タブに INSERT と SELECT の anon ポリシーが 2 つ並んでいれば成功です。
+試しにアプリの「💬 要望」→ 新規投稿で画像挿入ボタンを押し、画像が貼り付くか確認してください。
 
 ### 8-A-3. 不適切な画像が投稿された時
 
