@@ -77,7 +77,6 @@ export default async function TaskDetailPage({
           )}
           {task.title}
         </h1>
-        <p className="text-sm text-gray-600 mb-3">{task.summary}</p>
         <ArticleBody html={task.body} />
       </article>
 
