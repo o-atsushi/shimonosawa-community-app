@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { FormattedArticle } from "@/types";
+import { bodyExcerpt } from "@/lib/excerpt";
 
 const categoryLabels: Record<string, string> = {
   news: "お知らせ",
@@ -18,6 +19,7 @@ export default function ArticleCard({ article }: { article: FormattedArticle }) 
     article.category === "life"
       ? `/${article.category}`
       : `/${article.category}/${article.id}`;
+  const excerpt = bodyExcerpt(article.body);
 
   return (
     <Link
@@ -40,7 +42,9 @@ export default function ArticleCard({ article }: { article: FormattedArticle }) 
       <h3 className="font-bold text-gray-800 text-sm leading-snug mb-1">
         {article.title}
       </h3>
-      <p className="text-xs text-gray-500 line-clamp-2">{article.summary}</p>
+      {excerpt && (
+        <p className="text-xs text-gray-500 line-clamp-2">{excerpt}</p>
+      )}
       {article.pdf && (
         <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
           <span>📄</span>
