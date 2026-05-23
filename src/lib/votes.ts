@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase";
+import { getDisplayNamesByLineUserIds } from "@/lib/members";
 import type {
   OwnVote,
+  TaskResponseRow,
   VoteMode,
   VoteReasonItem,
   VoteSummary,
@@ -108,6 +110,74 @@ export async function getVoteReasons(
       });
   } catch (err) {
     console.error("[votes] getVoteReasons threw", err);
+    return [];
+  }
+}
+
+// 役員向け: 1 課題分の回答を「回答者単位」でグループ化して取得。
+// - single: 1 ユーザー = 1 行 (selectedOptions に 1 件 + reason)
+// - multiple: 1 ユーザー = N 行 → selectedOptions に集約
+// - freetext: 1 ユーザー = 1 行 (freeText に格納)
+// 並び順は created_at 降順 (新しい回答が上)。
+export async function getResponsesByTask(
+  taskId: string,
+  mode: VoteMode
+): Promise<TaskResponseRow[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from("votes")
+      .select("line_user_id, selected_option, reason, created_at")
+      .eq("task_id", taskId)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("[votes] getResponsesByTask error", error);
+      return [];
+    }
+    const rows = (data ?? []) as VoteRow[];
+    type Acc = {
+      lineUserId: string;
+      selectedOptions: string[];
+      freeText: string | null;
+      reason: string | null;
+      createdAt: string;
+    };
+    const grouped = new Map<string, Acc>();
+    for (const r of rows) {
+      const acc = grouped.get(r.line_user_id);
+      if (!acc) {
+        grouped.set(r.line_user_id, {
+          lineUserId: r.line_user_id,
+          selectedOptions:
+            mode === "freetext" ? [] : [r.selected_option],
+          freeText: mode === "freetext" ? r.selected_option : null,
+          reason: r.reason,
+          createdAt: r.created_at,
+        });
+      } else {
+        if (mode === "multiple") {
+          if (!acc.selectedOptions.includes(r.selected_option)) {
+            acc.selectedOptions.push(r.selected_option);
+          }
+        }
+        if (r.created_at < acc.createdAt) acc.createdAt = r.created_at;
+        if (r.reason && !acc.reason) acc.reason = r.reason;
+      }
+    }
+    const ids = Array.from(grouped.keys());
+    const nameMap = await getDisplayNamesByLineUserIds(ids);
+    const result: TaskResponseRow[] = Array.from(grouped.values()).map((a) => ({
+      lineUserId: a.lineUserId,
+      displayName: nameMap.get(a.lineUserId) ?? "(未登録)",
+      selectedOptions: a.selectedOptions,
+      freeText: a.freeText,
+      reason: a.reason,
+      createdAt: a.createdAt,
+    }));
+    result.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    return result;
+  } catch (err) {
+    console.error("[votes] getResponsesByTask threw", err);
     return [];
   }
 }
