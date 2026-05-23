@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getProfile, isLoggedIn } from "@/lib/liff";
 import { isVoteClosed, requiresReason } from "@/lib/tasks";
-import type { VoteSummary } from "@/types";
+import type { VoteMode, VoteSummary } from "@/types";
 
 const REASON_MAX = 200;
+const FREETEXT_MAX = 1000;
 
 function formatDeadline(iso: string): string {
   const d = new Date(iso);
@@ -32,16 +33,27 @@ function timeLeftText(deadline: string, now: Date = new Date()): string {
   return `残り ${days} 日`;
 }
 
+const MODE_LABELS: Record<VoteMode, string> = {
+  single: "🗳 投票 (単一選択)",
+  multiple: "🗳 投票 (複数選択可)",
+  freetext: "📝 自由回答",
+};
+
 // 投票パネル。
-// - 期限切れなら投票UI を無効化、結果と「投票終了」を表示
-// - 「反対」を含む選択肢を選んだ時は理由入力を必須化 (200文字以内)
+// - voteMode によって UI を切り替え:
+//   - single: ラジオボタン (1 つ選択 + 反対時は理由必須)
+//   - multiple: チェックボックス (複数選択可、理由は無し運用)
+//   - freetext: テキストエリア (個人回答。他の住民からは見えない)
+// - 期限切れなら投票 UI を無効化、結果と「投票終了」を表示
 export default function VotingPanel({
   taskId,
+  voteMode,
   voteOptions,
   voteDeadline,
   summary,
 }: {
   taskId: string;
+  voteMode: VoteMode;
   voteOptions: string[];
   voteDeadline?: string;
   summary: VoteSummary;
@@ -49,18 +61,26 @@ export default function VotingPanel({
   const router = useRouter();
   const [lineUserId, setLineUserId] = useState<string | undefined>();
   const [authChecked, setAuthChecked] = useState(false);
-  const [myVote, setMyVote] = useState<string | null>(null);
+
+  // 自分の保存済み回答
+  const [myOptions, setMyOptions] = useState<string[]>([]);
+  const [myFreeText, setMyFreeText] = useState<string>("");
   const [myReason, setMyReason] = useState<string>("");
-  const [selected, setSelected] = useState<string | null>(null);
+
+  // 編集中の入力
+  const [selected, setSelected] = useState<string[]>([]);
+  const [freeText, setFreeText] = useState<string>("");
   const [reason, setReason] = useState<string>("");
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const closed = useMemo(() => isVoteClosed(voteDeadline), [voteDeadline]);
-  const reasonRequired = useMemo(
-    () => (selected ? requiresReason(selected) : false),
-    [selected]
-  );
+  // single モードでのみ「反対」選択肢に理由必須を強制
+  const reasonRequired = useMemo(() => {
+    if (voteMode !== "single") return false;
+    return selected.some((o) => requiresReason(o));
+  }, [voteMode, selected]);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,13 +107,20 @@ export default function VotingPanel({
           });
           if (res.ok) {
             const data = await res.json();
-            if (!cancelled && data?.selectedOption) {
-              setMyVote(data.selectedOption);
-              setSelected(data.selectedOption);
-              const r: string = typeof data.reason === "string" ? data.reason : "";
-              setMyReason(r);
-              setReason(r);
-            }
+            if (cancelled) return;
+            const opts: string[] = Array.isArray(data.selectedOptions)
+              ? data.selectedOptions
+              : [];
+            const ft: string =
+              typeof data.freeText === "string" ? data.freeText : "";
+            const rs: string =
+              typeof data.reason === "string" ? data.reason : "";
+            setMyOptions(opts);
+            setSelected(opts);
+            setMyFreeText(ft);
+            setFreeText(ft);
+            setMyReason(rs);
+            setReason(rs);
           }
         } catch (err) {
           console.warn("[VotingPanel] failed to fetch own vote", err);
@@ -110,15 +137,40 @@ export default function VotingPanel({
     };
   }, [taskId]);
 
-  async function handleVote() {
-    if (!selected || !lineUserId || closed) return;
-    if (reasonRequired && reason.trim().length === 0) {
-      setError("反対の場合は理由を入力してください");
-      return;
+  function toggleOption(opt: string) {
+    if (voteMode === "single") {
+      setSelected([opt]);
+    } else if (voteMode === "multiple") {
+      setSelected((prev) =>
+        prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]
+      );
     }
-    if (reason.length > REASON_MAX) {
-      setError(`理由は${REASON_MAX}文字以内で入力してください`);
-      return;
+  }
+
+  async function handleSubmit() {
+    if (!lineUserId || closed) return;
+    if (voteMode === "freetext") {
+      if (freeText.trim().length === 0) {
+        setError("回答を入力してください");
+        return;
+      }
+      if (freeText.length > FREETEXT_MAX) {
+        setError(`回答は${FREETEXT_MAX}文字以内で入力してください`);
+        return;
+      }
+    } else {
+      if (selected.length === 0) {
+        setError("選択肢を選んでください");
+        return;
+      }
+      if (reasonRequired && reason.trim().length === 0) {
+        setError("反対の場合は理由を入力してください");
+        return;
+      }
+      if (reason.length > REASON_MAX) {
+        setError(`理由は${REASON_MAX}文字以内で入力してください`);
+        return;
+      }
     }
     setError(null);
     setSubmitting(true);
@@ -129,17 +181,26 @@ export default function VotingPanel({
         body: JSON.stringify({
           taskId,
           lineUserId,
-          selectedOption: selected,
-          reason: reason.trim() || undefined,
+          selectedOptions: voteMode === "freetext" ? undefined : selected,
+          freeText: voteMode === "freetext" ? freeText.trim() : undefined,
+          reason:
+            voteMode === "single" && reason.trim().length > 0
+              ? reason.trim()
+              : undefined,
         }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "投票に失敗しました");
+        setError(data.error ?? "送信に失敗しました");
         return;
       }
-      setMyVote(selected);
-      setMyReason(reason);
+      // ローカル状態を「保存済み」として更新
+      if (voteMode === "freetext") {
+        setMyFreeText(freeText.trim());
+      } else {
+        setMyOptions(selected);
+        setMyReason(reason);
+      }
       router.refresh();
     } catch {
       setError("通信エラーが発生しました");
@@ -148,23 +209,33 @@ export default function VotingPanel({
     }
   }
 
-  const total = summary.total;
-  const noChange = selected === myVote && reason === myReason;
+  const noChange =
+    voteMode === "freetext"
+      ? freeText.trim() === myFreeText
+      : sameSet(selected, myOptions) && reason === myReason;
+
   const canSubmit =
-    !!selected &&
     !!lineUserId &&
     !submitting &&
     !closed &&
     !noChange &&
-    !(reasonRequired && reason.trim().length === 0);
+    (voteMode === "freetext"
+      ? freeText.trim().length > 0
+      : selected.length > 0 &&
+        !(reasonRequired && reason.trim().length === 0));
+
+  const alreadyAnswered =
+    voteMode === "freetext" ? myFreeText.length > 0 : myOptions.length > 0;
 
   return (
     <section className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <h2 className="text-base font-bold text-gray-800">🗳 投票</h2>
+        <h2 className="text-base font-bold text-gray-800">
+          {MODE_LABELS[voteMode]}
+        </h2>
         {voteDeadline && (
           <div className="text-xs text-gray-600">
-            <span className="mr-2">投票期限: {formatDeadline(voteDeadline)}</span>
+            <span className="mr-2">回答期限: {formatDeadline(voteDeadline)}</span>
             <span
               className={`px-2 py-0.5 rounded-full font-medium ${
                 closed
@@ -180,50 +251,72 @@ export default function VotingPanel({
 
       {authChecked && !lineUserId && !closed && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-800 mb-3">
-          投票するには LINE 経由でアプリを開く必要があります。
+          回答するには LINE 経由でアプリを開く必要があります。
         </div>
       )}
       {closed && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-700 mb-3">
-          投票は終了しました。集計結果のみご覧いただけます。
+          回答受付は終了しました。
+          {voteMode !== "freetext" && "集計結果のみご覧いただけます。"}
         </div>
       )}
 
-      <div className="space-y-2 mb-4">
-        {voteOptions.map((opt) => {
-          const checked = selected === opt;
-          const isMyVote = myVote === opt;
-          const disabled = !lineUserId || submitting || closed;
-          return (
-            <label
-              key={opt}
-              className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                checked
-                  ? "bg-green-50 border-green-500"
-                  : "bg-white border-gray-300 hover:bg-gray-50"
-              } ${disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
-            >
-              <input
-                type="radio"
-                name={`vote-${taskId}`}
-                value={opt}
-                checked={checked}
-                disabled={disabled}
-                onChange={() => setSelected(opt)}
-                className="accent-green-600"
-              />
-              <span className="flex-1 text-sm text-gray-800">{opt}</span>
-              {isMyVote && (
-                <span className="text-xs text-green-700 font-bold">
-                  ✓ あなたの投票
-                </span>
-              )}
-            </label>
-          );
-        })}
-      </div>
+      {voteMode === "freetext" ? (
+        <div className="mb-4">
+          <p className="text-xs text-gray-500 mb-2">
+            この回答はあなたと役員のみが確認できます (他の住民には公開されません)。
+          </p>
+          <textarea
+            value={freeText}
+            onChange={(e) => setFreeText(e.target.value)}
+            maxLength={FREETEXT_MAX}
+            rows={5}
+            disabled={!lineUserId || submitting || closed}
+            placeholder="ご自由にご記入ください"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-y disabled:bg-gray-50"
+          />
+          <div className="text-right text-xs text-gray-400 mt-0.5">
+            {freeText.length} / {FREETEXT_MAX}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2 mb-4">
+          {voteOptions.map((opt) => {
+            const checked = selected.includes(opt);
+            const isMine = myOptions.includes(opt);
+            const disabled = !lineUserId || submitting || closed;
+            return (
+              <label
+                key={opt}
+                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                  checked
+                    ? "bg-green-50 border-green-500"
+                    : "bg-white border-gray-300 hover:bg-gray-50"
+                } ${disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+              >
+                <input
+                  type={voteMode === "multiple" ? "checkbox" : "radio"}
+                  name={`vote-${taskId}`}
+                  value={opt}
+                  checked={checked}
+                  disabled={disabled}
+                  onChange={() => toggleOption(opt)}
+                  className="accent-green-600"
+                />
+                <span className="flex-1 text-sm text-gray-800">{opt}</span>
+                {isMine && (
+                  <span className="text-xs text-green-700 font-bold">
+                    ✓ あなたの回答
+                  </span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+      )}
 
-      {!closed && lineUserId && (
+      {/* single モードのみ理由入力欄。multiple は理由なし運用、freetext は本文自体が回答 */}
+      {voteMode === "single" && !closed && lineUserId && (
         <div className="mb-3">
           <label
             htmlFor={`reason-${taskId}`}
@@ -253,48 +346,81 @@ export default function VotingPanel({
       {!closed && (
         <button
           type="button"
-          onClick={handleVote}
+          onClick={handleSubmit}
           disabled={!canSubmit}
           className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-lg transition-colors text-sm mb-2"
         >
           {submitting
             ? "送信中..."
-            : myVote
+            : alreadyAnswered
               ? noChange
-                ? "投票済み"
-                : "投票を変更する"
-              : "投票する"}
+                ? "回答済み"
+                : "回答を変更する"
+              : voteMode === "freetext"
+                ? "送信する"
+                : "投票する"}
         </button>
       )}
       {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
 
+      {/* 集計 (freetext は件数のみ。multiple は選択肢ごとの票数 + 投票者数) */}
       <div className="mt-5 pt-4 border-t border-gray-100">
-        <p className="text-xs text-gray-500 mb-2">
-          現時点の集計 ({total}人が投票)
-        </p>
-        <div className="space-y-2">
-          {voteOptions.map((opt) => {
-            const count = summary.counts[opt] ?? 0;
-            const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-            return (
-              <div key={opt}>
-                <div className="flex justify-between text-xs text-gray-700 mb-0.5">
-                  <span>{opt}</span>
-                  <span>
-                    {count}票 ({pct}%)
-                  </span>
-                </div>
-                <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-green-500 h-full rounded-full transition-all"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {voteMode === "freetext" ? (
+          <p className="text-xs text-gray-500">
+            これまでに <span className="font-bold">{summary.total}</span> 件の回答が寄せられています。
+            <br />
+            個別の本文は役員のみが確認します。
+          </p>
+        ) : (
+          <>
+            <p className="text-xs text-gray-500 mb-2">
+              現時点の集計 ({summary.total}人が回答
+              {voteMode === "multiple" && "・複数選択可"})
+            </p>
+            <div className="space-y-2">
+              {voteOptions.map((opt) => {
+                const count = summary.counts[opt] ?? 0;
+                // 棒グラフの分母:
+                // - single: 総投票者数 (= summary.total)
+                // - multiple: 最大票数を 100% とすると分かりやすい
+                const denom =
+                  voteMode === "multiple"
+                    ? Math.max(1, ...Object.values(summary.counts))
+                    : summary.total;
+                const pct = denom > 0 ? Math.round((count / denom) * 100) : 0;
+                const displayPctSingle =
+                  summary.total > 0
+                    ? Math.round((count / summary.total) * 100)
+                    : 0;
+                return (
+                  <div key={opt}>
+                    <div className="flex justify-between text-xs text-gray-700 mb-0.5">
+                      <span>{opt}</span>
+                      <span>
+                        {count}票
+                        {voteMode === "single" && ` (${displayPctSingle}%)`}
+                      </span>
+                    </div>
+                    <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-green-500 h-full rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
     </section>
   );
+}
+
+// 2 つの string[] が同じ集合 (順不同) かどうか
+function sameSet(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const setB = new Set(b);
+  return a.every((v) => setB.has(v));
 }

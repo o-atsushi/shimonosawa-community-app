@@ -154,6 +154,13 @@ export type TaskStatus = "open" | "in_progress" | "resolved";
 // 優先度。high=高 / medium=中 / low=低
 export type TaskPriority = "high" | "medium" | "low";
 
+// 投票の回答方式。
+// - single: 単一選択 (デフォルト)。1 人 1 票で 1 つの選択肢を選ぶ
+// - multiple: 複数選択。1 人で複数の選択肢にチェックできる
+// - freetext: 自由記述。選択肢なし。テキストエリアで自由に回答してもらう
+//             自由入力モードは「個人回答」で、他の住民からは見えない (役員のみ Supabase で参照)
+export type VoteMode = "single" | "multiple" | "freetext";
+
 // microCMS のスキーマに対応する型 (セレクト型は単一選択でも配列で返る)
 export interface TaskContent {
   title: string;
@@ -165,11 +172,13 @@ export interface TaskContent {
   priority?: [TaskPriority];
   // 決めていく順序 (小さいほど先に表示)。同値なら publishedAt 降順
   displayOrder?: number;
-  // 投票選択肢 (改行区切り)。空または未設定なら投票機能は表示しない
+  // 投票選択肢 (改行区切り)。空または未設定なら投票機能は表示しない (single / multiple のみ)
   // 例: "賛成\n反対\nどちらでもない"
   voteOptionsRaw?: string;
   // 投票期限 (ISO date string)。未設定なら無期限
   voteDeadline?: string;
+  // 回答方式。未設定なら "single" (後方互換)
+  voteMode?: [VoteMode];
 }
 
 export type TaskCms = TaskContent & MicroCMSListContent;
@@ -182,21 +191,34 @@ export interface Task {
   status: TaskStatus;
   priority?: TaskPriority;
   displayOrder?: number;
-  // パース後の投票選択肢。空配列なら投票機能なし
+  // パース後の投票選択肢。空配列なら投票機能なし (freetext モードでも空配列で OK)
   voteOptions: string[];
   // 投票期限 (ISO date string)。未設定なら無期限
   voteDeadline?: string;
+  // 回答方式。未設定は "single"
+  voteMode: VoteMode;
   publishedAt: string; // ISO date string
   updatedAt: string; // ISO date string
 }
 
 // ===== 課題ごとの投票 (Supabase) =====
 
-// 集計結果。option ごとの票数 + 合計。
-// 自分の投票は別途 API で取得し、UI 側で合成する
+// 集計結果。
+// - single / multiple: option ごとの票数 + 回答者総数 (uniqueな投票者数)
+// - freetext: 個人回答モードのため住民側には公開せず、件数のみ
 export interface VoteSummary {
-  total: number;
-  counts: Record<string, number>; // option name → count
+  total: number; // 投票した「人数」(uniqueなlineUserId数)
+  counts: Record<string, number>; // option name → count (freetext では空)
+}
+
+// 自分の回答 (3 モード共通)。
+// - single: selectedOptions に 1 件、必要なら reason
+// - multiple: selectedOptions に N 件
+// - freetext: freeText に本文
+export interface OwnVote {
+  selectedOptions: string[];
+  freeText: string | null;
+  reason: string | null;
 }
 
 // 投票理由 (匿名表示用)。option ごとに自由記述の声を一覧表示する。
