@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import AdminTaskResponsesLink from "@/components/AdminTaskResponsesLink";
 import ArticleBody from "@/components/ArticleBody";
 import CommentForm from "@/components/CommentForm";
 import CommentList from "@/components/CommentList";
@@ -93,6 +94,10 @@ export default async function TaskDetailPage({
             voteDeadline={task.voteDeadline}
             summary={voteSummary}
           />
+          {/* 役員のみ「回答一覧 (名前付き)」へのリンクを表示 */}
+          <div className="mt-2 text-right">
+            <AdminTaskResponsesLink taskId={task.id} />
+          </div>
         </section>
       )}
 

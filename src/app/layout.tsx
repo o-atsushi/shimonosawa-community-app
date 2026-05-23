@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import LiffProvider from "@/components/LiffProvider";
+import MemberAutoRegister from "@/components/MemberAutoRegister";
 
 export const metadata: Metadata = {
   title: "野州シモノサワCommunity",
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="ja" className="h-full antialiased">
       <body className="min-h-full bg-gray-50 text-gray-900">
         <LiffProvider>
+          <MemberAutoRegister />
           <Header />
           <main className="max-w-lg mx-auto px-4 py-4 pb-20">{children}</main>
           <BottomNav />

@@ -201,6 +201,31 @@ export interface Task {
   updatedAt: string; // ISO date string
 }
 
+// ===== 会員 / 役員 (Supabase members) =====
+//
+// 軽量メンバー管理。LIFF 初回アクセスで自動登録され、is_admin だけは
+// 役員が Supabase 側で SQL で立てる運用。会費・会員番号などは持たない。
+export interface Member {
+  id: string;
+  lineUserId: string;
+  displayName: string;
+  isAdmin: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 役員向け: 1 課題分の各回答者 (line_user_id 単位でまとめたもの)
+export interface TaskResponseRow {
+  lineUserId: string;
+  displayName: string; // 未登録なら "(未登録)"
+  // single / multiple: 選択肢の配列 (single は要素 1)
+  // freetext: 空配列 (本文は freeText に)
+  selectedOptions: string[];
+  freeText: string | null;
+  reason: string | null;
+  createdAt: string; // 当該ユーザーの最古行の created_at
+}
+
 // ===== 課題ごとの投票 (Supabase) =====
 
 // 集計結果。
