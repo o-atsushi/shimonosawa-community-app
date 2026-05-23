@@ -209,6 +209,38 @@ export default function VotingPanel({
     }
   }
 
+  // 自分の回答を完全に取り消す。確認ダイアログを出してから DELETE する。
+  async function handleWithdraw() {
+    if (!lineUserId || closed || submitting) return;
+    if (!window.confirm("あなたの回答を取り消しますか?")) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/votes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, lineUserId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "取り消しに失敗しました");
+        return;
+      }
+      // ローカル状態を「未回答」に戻す
+      setMyOptions([]);
+      setSelected([]);
+      setMyFreeText("");
+      setFreeText("");
+      setMyReason("");
+      setReason("");
+      router.refresh();
+    } catch {
+      setError("通信エラーが発生しました");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   const noChange =
     voteMode === "freetext"
       ? freeText.trim() === myFreeText
@@ -359,6 +391,17 @@ export default function VotingPanel({
               : voteMode === "freetext"
                 ? "送信する"
                 : "投票する"}
+        </button>
+      )}
+      {/* 回答済みのときだけ「取り消す」リンク (期限内のみ) */}
+      {!closed && alreadyAnswered && lineUserId && (
+        <button
+          type="button"
+          onClick={handleWithdraw}
+          disabled={submitting}
+          className="w-full text-xs text-gray-500 hover:text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed py-1 mb-2"
+        >
+          回答を取り消す
         </button>
       )}
       {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
