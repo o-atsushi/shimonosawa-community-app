@@ -1,5 +1,13 @@
 import { client } from "@/lib/microcms";
-import type { Task, TaskCms, TaskPriority, TaskStatus } from "@/types";
+import type {
+  Task,
+  TaskCms,
+  TaskPriority,
+  TaskStatus,
+  VoteMode,
+} from "@/types";
+
+const VALID_VOTE_MODES: VoteMode[] = ["single", "multiple", "freetext"];
 
 // 改行区切りの投票選択肢を配列にパース。空白行と前後空白は除去。
 function parseVoteOptions(raw?: string): string[] {
@@ -11,6 +19,9 @@ function parseVoteOptions(raw?: string): string[] {
 }
 
 function formatTask(c: TaskCms): Task {
+  const rawMode = c.voteMode?.[0];
+  const voteMode: VoteMode =
+    rawMode && VALID_VOTE_MODES.includes(rawMode) ? rawMode : "single";
   return {
     id: c.id,
     title: c.title,
@@ -18,11 +29,22 @@ function formatTask(c: TaskCms): Task {
     status: c.status?.[0] ?? "open",
     priority: c.priority?.[0],
     displayOrder: c.displayOrder,
-    voteOptions: parseVoteOptions(c.voteOptionsRaw),
+    // freetext モードは選択肢を使わないので空配列扱い
+    voteOptions:
+      voteMode === "freetext" ? [] : parseVoteOptions(c.voteOptionsRaw),
     voteDeadline: c.voteDeadline,
+    voteMode,
     publishedAt: c.publishedAt ?? c.createdAt,
     updatedAt: c.updatedAt,
   };
+}
+
+// 投票機能が有効か。
+// - single / multiple: voteOptions が 1 件以上
+// - freetext: 常に有効 (選択肢不要)
+export function hasVoting(task: Pick<Task, "voteMode" | "voteOptions">): boolean {
+  if (task.voteMode === "freetext") return true;
+  return task.voteOptions.length > 0;
 }
 
 // 「反対」を含む選択肢かどうか。理由必須化の判定に使う。

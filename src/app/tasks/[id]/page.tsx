@@ -13,6 +13,7 @@ import {
   TASK_STATUS_COLORS,
   TASK_STATUS_LABELS,
   getTask,
+  hasVoting as hasVotingForTask,
 } from "@/lib/tasks";
 
 export const revalidate = 30;
@@ -40,7 +41,10 @@ export default async function TaskDetailPage({
   ]);
 
   if (!task) return notFound();
-  const hasVoting = task.voteOptions.length > 0;
+  const hasVoting = hasVotingForTask(task);
+  // freetext モードは個人回答なので住民側の理由一覧は出さない
+  const showReasons =
+    task.voteMode === "single" && voteReasons.length > 0;
 
   return (
     <div>
@@ -84,6 +88,7 @@ export default async function TaskDetailPage({
         <section className="mb-6">
           <VotingPanel
             taskId={task.id}
+            voteMode={task.voteMode}
             voteOptions={task.voteOptions}
             voteDeadline={task.voteDeadline}
             summary={voteSummary}
@@ -91,7 +96,7 @@ export default async function TaskDetailPage({
         </section>
       )}
 
-      {hasVoting && voteReasons.length > 0 && (
+      {showReasons && (
         <section className="mb-6">
           <VoteReasonsList reasons={voteReasons} />
         </section>

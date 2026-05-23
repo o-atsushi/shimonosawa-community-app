@@ -2,18 +2,26 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { castVote } from "@/lib/votes";
 import { getTask, isVoteClosed, requiresReason } from "@/lib/tasks";
+import type { VoteMode } from "@/types";
 
 const LINE_USER_ID_PATTERN = /^U[0-9a-f]{32}$/;
 const REASON_MAX = 200;
+const FREETEXT_MAX = 1000;
 
-// 投票 / 変更 (UPSERT)。1人1票で何度でも変更可能。
-// taskId と selectedOption は microCMS 側の voteOptions に含まれる文字列であることを
-// サーバー側で検証してから upsert する。
+// 投票 / 変更。3 モード共通エンドポイント。
+// body: {
+//   taskId, lineUserId,
+//   selectedOptions?: string[],  // single / multiple
+//   freeText?: string,           // freetext
+//   reason?: string,             // single モードの理由
+// }
+// サーバー側で task.voteMode を取得し、それに合わせて入力を検証する。
 export async function POST(request: Request) {
   let body: {
     taskId?: string;
     lineUserId?: string;
-    selectedOption?: string;
+    selectedOptions?: string[];
+    freeText?: string;
     reason?: string;
   };
   try {
@@ -25,13 +33,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const { taskId, lineUserId, selectedOption, reason } = body;
+  const { taskId, lineUserId, selectedOptions, freeText, reason } = body;
 
   if (!taskId || typeof taskId !== "string") {
-    return NextResponse.json(
-      { error: "課題IDが不正です" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "課題IDが不正です" }, { status: 400 });
   }
   if (
     !lineUserId ||
@@ -40,20 +45,18 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
   }
-  if (
-    !selectedOption ||
-    typeof selectedOption !== "string" ||
-    selectedOption.trim().length === 0 ||
-    selectedOption.length > 200
-  ) {
-    return NextResponse.json(
-      { error: "選択肢が不正です" },
-      { status: 400 }
-    );
-  }
 
-  const trimmedReason =
-    typeof reason === "string" ? reason.trim() : "";
+  // 課題情報を取り、モード別バリデーション
+  const task = await getTask(taskId);
+  if (!task) {
+    return NextResponse.json({ error: "課題が見つかりません" }, { status: 404 });
+  }
+  if (isVoteClosed(task.voteDeadline)) {
+    return NextResponse.json({ error: "投票期限を過ぎました" }, { status: 403 });
+  }
+  const mode: VoteMode = task.voteMode;
+
+  const trimmedReason = typeof reason === "string" ? reason.trim() : "";
   if (trimmedReason.length > REASON_MAX) {
     return NextResponse.json(
       { error: `理由は${REASON_MAX}文字以内で入力してください` },
@@ -61,41 +64,79 @@ export async function POST(request: Request) {
     );
   }
 
-  // 課題に紐づく公式の選択肢に含まれるかどうかを検証
-  const task = await getTask(taskId);
-  if (!task) {
-    return NextResponse.json(
-      { error: "課題が見つかりません" },
-      { status: 404 }
-    );
-  }
-  if (!task.voteOptions.includes(selectedOption)) {
-    return NextResponse.json(
-      { error: "選択肢が一致しません (役員が選択肢を変更した可能性があります)" },
-      { status: 400 }
-    );
-  }
-  // 期限切れの場合は受け付けない
-  if (isVoteClosed(task.voteDeadline)) {
-    return NextResponse.json(
-      { error: "投票期限を過ぎました" },
-      { status: 403 }
-    );
-  }
-  // 「反対」を含む選択肢では理由必須
-  if (requiresReason(selectedOption) && trimmedReason.length === 0) {
-    return NextResponse.json(
-      { error: "反対の場合は理由を入力してください" },
-      { status: 400 }
-    );
+  let normalizedOptions: string[] = [];
+  let normalizedFreeText: string | null = null;
+
+  if (mode === "freetext") {
+    if (typeof freeText !== "string") {
+      return NextResponse.json(
+        { error: "回答を入力してください" },
+        { status: 400 }
+      );
+    }
+    const t = freeText.trim();
+    if (t.length === 0) {
+      return NextResponse.json(
+        { error: "回答を入力してください" },
+        { status: 400 }
+      );
+    }
+    if (t.length > FREETEXT_MAX) {
+      return NextResponse.json(
+        { error: `回答は${FREETEXT_MAX}文字以内で入力してください` },
+        { status: 400 }
+      );
+    }
+    normalizedFreeText = t;
+  } else {
+    if (!Array.isArray(selectedOptions) || selectedOptions.length === 0) {
+      return NextResponse.json(
+        { error: "選択肢を選んでください" },
+        { status: 400 }
+      );
+    }
+    if (mode === "single" && selectedOptions.length !== 1) {
+      return NextResponse.json(
+        { error: "選択肢を 1 つ選んでください" },
+        { status: 400 }
+      );
+    }
+    // 重複除去
+    const uniq = Array.from(new Set(selectedOptions));
+    // 全選択肢が task.voteOptions に含まれるか
+    for (const opt of uniq) {
+      if (typeof opt !== "string" || !task.voteOptions.includes(opt)) {
+        return NextResponse.json(
+          {
+            error:
+              "選択肢が一致しません (役員が選択肢を変更した可能性があります)",
+          },
+          { status: 400 }
+        );
+      }
+    }
+    normalizedOptions = uniq;
+
+    // 「反対」を含む選択肢が混ざっていれば理由必須 (single のみ。multiple は理由なし運用)
+    if (mode === "single") {
+      const need = normalizedOptions.some((o) => requiresReason(o));
+      if (need && trimmedReason.length === 0) {
+        return NextResponse.json(
+          { error: "反対の場合は理由を入力してください" },
+          { status: 400 }
+        );
+      }
+    }
   }
 
   try {
     await castVote(
       taskId,
       lineUserId,
-      selectedOption,
-      trimmedReason.length > 0 ? trimmedReason : null
+      mode,
+      normalizedOptions,
+      normalizedFreeText,
+      mode === "single" && trimmedReason.length > 0 ? trimmedReason : null
     );
     revalidatePath(`/tasks/${taskId}`);
     return NextResponse.json({ ok: true });
