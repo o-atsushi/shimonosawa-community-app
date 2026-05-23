@@ -112,6 +112,27 @@ export async function getVoteReasons(
   }
 }
 
+// 自分の回答を完全に取り消す (取り下げ)。
+// (task, user) に紐づく行を全削除。castVote の DELETE 部分と同じだが、
+// INSERT は行わない。
+export async function withdrawVote(
+  taskId: string,
+  lineUserId: string
+): Promise<void> {
+  if (!supabase) {
+    throw new Error("Supabase client is not configured");
+  }
+  const { error } = await supabase
+    .from("votes")
+    .delete()
+    .eq("task_id", taskId)
+    .eq("line_user_id", lineUserId);
+  if (error) {
+    console.error("[votes] withdrawVote failed", error);
+    throw new Error("投票の取り消しに失敗しました");
+  }
+}
+
 // 投票を反映 (3 モード共通)。
 // 戦略: まず (task, user) に紐づく既存の行を全削除し、その後新しい行を INSERT する。
 // - single: 1 行のみ (selected_option + 任意の reason)
