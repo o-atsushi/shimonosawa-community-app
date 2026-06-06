@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// 6 アイテム入る想定。横幅が狭いので、各ラベルは 2〜4 文字に収める。
+// 7 アイテム想定。横幅が狭いので、各ラベルは 2〜4 文字に収める。
 const navItems = [
   { href: "/", label: "ホーム", icon: "🏠" },
   // 新設課題: ホーム右隣に置いて目立たせる
   { href: "/tasks", label: "新設課題", icon: "🎯" },
   { href: "/news", label: "お知らせ", icon: "📢" },
+  { href: "/circulation", label: "回覧板", icon: "📜" },
   { href: "/events", label: "イベント", icon: "🎉" },
   { href: "/inquiries", label: "要望", icon: "💬" },
   { href: "/life", label: "生活", icon: "📋" },

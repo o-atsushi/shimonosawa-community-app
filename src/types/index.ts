@@ -271,3 +271,23 @@ export interface CommentInput {
   body: string;
   lineUserId: string;
 }
+
+// ===== デジタル回覧板 (Supabase circulations) =====
+//
+// 役員が紙の回覧書類 (市役所からの通知など) をアプリで撮影してアップロードし、
+// 全会員がいつでも過去の書類を写真付きで見られるようにする機能。
+// タイトル + 画像 N 枚のシンプルな構造。
+export interface Circulation {
+  id: string;
+  title: string;
+  // Supabase Storage circulation-images バケットの public URL の配列
+  imageUrls: string[];
+  // 投稿者の LINE userId (役員。表示はしない)
+  uploadedByLineUserId: string | null;
+  createdAt: string; // ISO date string
+}
+
+export interface CirculationInput {
+  title: string;
+  imageUrls: string[];
+}
