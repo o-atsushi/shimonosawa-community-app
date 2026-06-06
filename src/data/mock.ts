@@ -23,6 +23,15 @@ export const categories: CategoryInfo[] = [
     color: "bg-green-500",
   },
   {
+    id: "circulation",
+    label: "デジタル回覧板",
+    icon: "📜",
+    description: "市役所からの回覧書類",
+    color: "bg-amber-500",
+    // articles の category id ではないため、明示的に href を指定する
+    href: "/circulation",
+  },
+  {
     id: "tasks",
     label: "課題",
     icon: "📋",
