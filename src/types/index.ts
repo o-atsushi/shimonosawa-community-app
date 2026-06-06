@@ -63,7 +63,7 @@ export interface OwnRsvp {
 
 // ホーム画面のカテゴリカードに表示するエントリのID。
 // articles の Category (news/events/life) に加えて、独自ページへの導線も持つ。
-export type HomeCategoryId = Category | "tasks";
+export type HomeCategoryId = Category | "tasks" | "circulation";
 
 export interface CategoryInfo {
   id: HomeCategoryId;
