@@ -16,6 +16,7 @@
 7. [PDF を添付したい時](#7-pdf-を添付したい時)
 8. [画像を本文に埋め込みたい時](#8-画像を本文に埋め込みたい時)
 8-A. [住民の要望投稿 (リッチエディタ + 画像)](#8-a-住民の要望投稿-リッチエディタ--画像)
+8-B. [デジタル回覧板 (紙書類を撮影してアップロード)](#8-b-デジタル回覧板-紙書類を撮影してアップロード)
 9. [住民から削除依頼があった時](#9-住民から削除依頼があった時)
 10. [困った時 / よくある質問](#10-困った時--よくある質問)
 11. [役員アカウントの設定方法](#11-役員アカウントの設定方法)
@@ -33,6 +34,7 @@
 | 🎯 新設課題 | 新自治会設立に向けた検討中の課題 + 投票 | **課題の追加・投票選択肢の設定** |
 | 📢 お知らせ | 自治会からのお知らせ | **記事の投稿** |
 | 🎉 イベント | お祭り・清掃活動など | **イベントの投稿 (RSVP オプションつき)** |
+| 📜 回覧板 | 紙の回覧書類を撮影して共有 | **アプリから写真をアップロード** ([8-B 章](#8-b-デジタル回覧板-紙書類を撮影してアップロード) 参照) |
 | 💬 要望 | 住民からの質問・要望 + いいね | **モデレーション・回答** ([6 章](#6-投票結果やコメントを確認する) 参照) |
 | 📋 生活 | ゴミ出し・防災など暮らしの情報 | **生活情報の投稿** |
 
@@ -346,6 +348,81 @@ Storage → `inquiry-images` → Policies タブに INSERT と SELECT の anon �
 - 投稿者本人が「この投稿を削除」を押せば、その投稿ごと一覧から消えます
 - 画像ファイル自体は Supabase Storage に残ったままになります。気になる場合は Supabase Storage の `inquiry-images` から該当ファイルを手動で削除してください
 - (将来的に「投稿削除 → 画像も削除」する仕組みを検討中)
+
+---
+
+## 8-B. デジタル回覧板 (紙書類を撮影してアップロード)
+
+市役所などから自治会に届く **紙の回覧書類** を、役員がスマホで撮影してアプリにアップロードする機能です。
+アップロードされた書類は全会員が一覧から **いつでも過去分も含めて閲覧** できます。
+
+### 8-B-1. アップロード手順 (役員)
+
+1. アプリの下部メニュー **📜 回覧板** をタップ
+2. 画面右下の **「＋ 回覧板を追加」** ボタンを押す (役員アカウントにのみ表示)
+3. **タイトル** を入力 (例: 「市役所からのお知らせ (2026年5月)」)
+4. **「📷 写真を撮影 / 選択」** ボタンから、撮影 or アルバムから選択
+   - 1 件あたり最大 **10 枚** までまとめてアップロード可能
+   - 1 枚あたり **10MB まで** / JPEG / PNG / WEBP / GIF 対応
+5. アップロード完了 (各サムネに ✓ マーク) を確認したら **「公開する」** を押す
+6. 一覧に即時反映されます
+
+### 8-B-2. 閲覧 / 削除
+
+- 全会員は `/circulation` から一覧 (サムネイル + タイトル + 日付) を閲覧可能
+- 各カードをタップすると **写真がフル表示** され、さらにタップで原寸を新規タブで開けます
+- 詳細画面の右下に **「🗑 この回覧板を削除」** が役員にのみ表示されます (誤投稿の取り消しに使用)
+
+### 8-B-3. セットアップ (初回のみ)
+
+`inquiry-images` バケットと同じ要領で、**`circulation-images`** バケットを Supabase に作ります。
+
+#### ① バケットを作る
+1. 左サイドバー **Storage** → **「New bucket」**
+2. **Name**: `circulation-images`、**Public bucket**: **ON**
+
+#### ② ポリシーを SQL で設定
+左サイドバー **SQL Editor** で実行:
+
+```sql
+-- INSERT 用 (役員のみアップロードできる旨は API 側で is_admin チェック)
+create policy "Allow anon insert to circulation-images"
+  on storage.objects for insert
+  to anon
+  with check (bucket_id = 'circulation-images');
+
+-- SELECT 用 (全会員が画像を見られるように)
+create policy "Allow public read of circulation-images"
+  on storage.objects for select
+  to anon
+  using (bucket_id = 'circulation-images');
+```
+
+#### ③ `circulations` テーブル
+SQL Editor で実行:
+
+```sql
+create table public.circulations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null check (char_length(title) between 1 and 100),
+  image_urls jsonb not null default '[]'::jsonb,
+  uploaded_by_line_user_id text,
+  created_at timestamptz not null default now()
+);
+alter table public.circulations enable row level security;
+-- SELECT: 全員 (一覧表示用)
+create policy "select_all" on public.circulations for select using (true);
+-- INSERT / DELETE は anon に許可 (API 側で is_admin 検証)
+create policy "insert_anon" on public.circulations for insert with check (true);
+create policy "delete_anon" on public.circulations for delete using (true);
+create index if not exists circulations_created_at_idx
+  on public.circulations (created_at desc);
+```
+
+### 8-B-4. 不要になった回覧板を消したい時
+
+- 詳細ページから役員が「🗑 この回覧板を削除」で消すと、`circulations` テーブルから当該行が消えます
+- **Supabase Storage 上の画像本体はそのまま残ります** (ストレージ容量が気になる場合のみ Storage の `circulation-images` から手動削除)
 
 ---
 
