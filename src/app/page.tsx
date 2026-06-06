@@ -19,10 +19,12 @@ const STATUS_ORDER: TaskStatus[] = ["open", "in_progress", "resolved"];
 
 export default async function Home() {
   const categories = getCategories();
-  const [latestArticles, newsArticles, allTasks, allInquiries] =
+  // お知らせ (news) はイベント (events) と統合したため、未読バッジも両方を対象にする。
+  const [latestArticles, newsArticles, eventsArticles, allTasks, allInquiries] =
     await Promise.all([
       getLatestArticles(5),
       getArticles("news"),
+      getArticles("events"),
       getTasks(),
       getInquiries(),
     ]);
@@ -32,7 +34,10 @@ export default async function Home() {
   );
   // 「課題」はホーム上部のヒーローで強調表示するため、カテゴリカードからは除外する
   const otherCategories = categories.filter((c) => c.id !== "tasks");
-  const newsPublishedAtList = newsArticles.map((a) => a.date);
+  // ニュースとイベント両方の date を未読バッジ判定に使う
+  const newsPublishedAtList = [...newsArticles, ...eventsArticles].map(
+    (a) => a.date
+  );
 
   // ステータスごとの件数を集計 (ヒーローの軽量サマリ表示用)
   const taskStatusCounts: Record<TaskStatus, number> = {

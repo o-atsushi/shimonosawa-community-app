@@ -3,17 +3,11 @@ import type { FormattedArticle, CategoryInfo } from "@/types";
 export const categories: CategoryInfo[] = [
   {
     id: "news",
+    // events を統合したため、ラベル/説明はそのまま「お知らせ」(イベント含む)
     label: "お知らせ",
     icon: "📢",
-    description: "",
+    description: "自治会からのお知らせ・イベント案内",
     color: "bg-blue-500",
-  },
-  {
-    id: "events",
-    label: "イベント",
-    icon: "🎉",
-    description: "地域のイベント・行事",
-    color: "bg-orange-500",
   },
   {
     id: "life",
