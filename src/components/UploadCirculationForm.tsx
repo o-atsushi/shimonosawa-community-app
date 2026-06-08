@@ -22,7 +22,10 @@ interface PendingImage {
 // 役員チェックは /api/members/me で行い、非役員にはフォーム自体を表示しない。
 export default function UploadCirculationForm() {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // 撮影 (capture="environment") とアルバム選択は同じ画面でも分けたほうが
+  // OS の挙動差 (特に Android Chrome) で迷いにくいため、input を 2 つ用意する。
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const libraryInputRef = useRef<HTMLInputElement | null>(null);
 
   const [authState, setAuthState] = useState<
     "loading" | "needs_login" | "forbidden" | "ready"
@@ -234,30 +237,54 @@ export default function UploadCirculationForm() {
         <label className="block text-sm font-bold text-gray-800 mb-2">
           写真 ({images.length} / {MAX_IMAGES})
         </label>
+        {/* 撮影用 (capture でカメラ起動を促す) */}
         <input
-          ref={fileInputRef}
+          ref={cameraInputRef}
           type="file"
           accept="image/*"
-          multiple
           capture="environment"
           onChange={(e) => {
             handleFilesPicked(e.target.files);
-            // input をリセット (同じファイルを再選択できるように)
             if (e.target) e.target.value = "";
           }}
           className="hidden"
         />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={images.length >= MAX_IMAGES}
-          className="w-full border-2 border-dashed border-gray-300 hover:border-green-500 text-sm text-gray-600 py-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          📷 写真を撮影 / 選択
-          <span className="block text-xs text-gray-400 mt-1">
-            まとめて選択もできます (最大 {MAX_IMAGES} 枚 / 1 枚 10MB まで)
-          </span>
-        </button>
+        {/* アルバム選択用 (capture なし。複数選択可) */}
+        <input
+          ref={libraryInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => {
+            handleFilesPicked(e.target.files);
+            if (e.target) e.target.value = "";
+          }}
+          className="hidden"
+        />
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={images.length >= MAX_IMAGES}
+            className="border-2 border-dashed border-gray-300 hover:border-green-500 text-sm text-gray-600 py-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="text-2xl block leading-tight">📷</span>
+            写真を撮影
+          </button>
+          <button
+            type="button"
+            onClick={() => libraryInputRef.current?.click()}
+            disabled={images.length >= MAX_IMAGES}
+            className="border-2 border-dashed border-gray-300 hover:border-green-500 text-sm text-gray-600 py-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="text-2xl block leading-tight">🖼</span>
+            アルバムから選択
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mt-2 text-center">
+          アルバムからは **まとめて複数枚** 選択できます (最大 {MAX_IMAGES} 枚 / 1 枚 10MB まで)
+        </p>
 
         {images.length > 0 && (
           <div className="grid grid-cols-3 gap-2 mt-3">
