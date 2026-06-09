@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import CirculationDeleteButton from "@/components/CirculationDeleteButton";
+import CirculationViewsAdminLink from "@/components/CirculationViewsAdminLink";
+import RecordCirculationView from "@/components/RecordCirculationView";
 import { getCirculation } from "@/lib/circulations";
 
 export const revalidate = 60;
@@ -55,7 +57,11 @@ export default async function CirculationDetailPage({
         ))}
       </div>
 
-      <div className="mt-6 text-right">
+      {/* 閲覧履歴を記録 (LIFF ログイン済みの住民のみ) */}
+      <RecordCirculationView circulationId={c.id} />
+
+      <div className="mt-6 flex items-center justify-between gap-2 flex-wrap">
+        <CirculationViewsAdminLink circulationId={c.id} />
         <CirculationDeleteButton circulationId={c.id} />
       </div>
     </div>
