@@ -291,3 +291,28 @@ export interface CirculationInput {
   title: string;
   imageUrls: string[];
 }
+
+// 回覧板の閲覧履歴 (Supabase circulation_views)
+// 1 回の詳細ページ閲覧で 1 行 INSERT する。
+// 同じユーザーが複数回見れば複数行になる (PV としてカウント可能)。
+export interface CirculationView {
+  id: string;
+  circulationId: string;
+  lineUserId: string;
+  viewedAt: string; // ISO date string
+}
+
+// 役員向けに集計済みの閲覧統計 (1 件の回覧板分)
+export interface CirculationViewStats {
+  totalViews: number; // 延べ PV (同一人物の複数回も含む)
+  uniqueViewers: number; // ユニークな閲覧者数
+  viewers: CirculationViewer[]; // 1 ユーザー = 1 行 (会員名 + 累計 PV + 初回/最新閲覧)
+}
+
+export interface CirculationViewer {
+  lineUserId: string;
+  displayName: string; // members.display_name か "(未登録)"
+  viewCount: number;
+  firstViewedAt: string;
+  lastViewedAt: string;
+}

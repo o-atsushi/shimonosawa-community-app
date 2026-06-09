@@ -379,6 +379,23 @@ Storage → `inquiry-images` → Policies タブに INSERT と SELECT の anon �
 - 各カードをタップすると **写真がフル表示** され、さらにタップで原寸を新規タブで開けます
 - 詳細画面の右下に **「🗑 この回覧板を削除」** が役員にのみ表示されます (誤投稿の取り消しに使用)
 
+### 8-B-2-A. 閲覧履歴の確認 (役員専用)
+
+住民が回覧板の詳細ページを開くと **`circulation_views` テーブルに 1 行記録** されます (LIFF ログイン済みの住民のみ)。
+
+役員は以下の手順で閲覧状況を確認できます:
+
+1. 該当の回覧板の詳細ページを開く
+2. 左下に **「🛡️ 役員: 閲覧履歴を見る」** リンクが出る (役員のみ表示)
+3. タップすると `/circulation/[id]/views` の **役員専用ページ** が開く
+
+確認できる情報:
+- **ユニーク閲覧者** … 何人が見たか (重複なし)
+- **延べ閲覧 (PV)** … 同じ人が複数回見た分も含めた累計
+- **閲覧者一覧** … 会員名 + その人の PV + 初回 / 最新閲覧日時
+
+> 💡 LIFF ログインしていない住民の閲覧は記録されません。会員登録 (自動) がまだの住民は「(未登録)」と表示されます。
+
 ### 8-B-3. セットアップ (初回のみ)
 
 `inquiry-images` バケットと同じ要領で、**`circulation-images`** バケットを Supabase に作ります。
@@ -423,6 +440,27 @@ create policy "insert_anon" on public.circulations for insert with check (true);
 create policy "delete_anon" on public.circulations for delete using (true);
 create index if not exists circulations_created_at_idx
   on public.circulations (created_at desc);
+```
+
+#### ④ 閲覧履歴テーブル `circulation_views`
+役員が「閲覧履歴」を確認するために必要なテーブルです。住民が詳細ページを開くたびに 1 行 INSERT されます。
+
+```sql
+create table public.circulation_views (
+  id uuid primary key default gen_random_uuid(),
+  circulation_id uuid not null references public.circulations(id) on delete cascade,
+  line_user_id text not null,
+  viewed_at timestamptz not null default now()
+);
+alter table public.circulation_views enable row level security;
+-- SELECT: 役員ページが集計用に使う (実際の権限制御は API 側で is_admin 検証)
+create policy "select_all" on public.circulation_views for select using (true);
+-- INSERT: anon に許可 (住民が詳細ページを開いた瞬間に記録される)
+create policy "insert_anon" on public.circulation_views for insert with check (true);
+create index if not exists circulation_views_circulation_id_idx
+  on public.circulation_views (circulation_id);
+create index if not exists circulation_views_line_user_id_idx
+  on public.circulation_views (line_user_id);
 ```
 
 ### 8-B-4. 不要になった回覧板を消したい時
