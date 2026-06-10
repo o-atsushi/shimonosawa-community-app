@@ -9,8 +9,10 @@ const ALLOWED_MIME = new Set([
   "image/webp",
   "image/gif",
 ]);
-// 紙書類のスキャン/撮影なので大きめに許容 (回覧板 1 枚あたり)
-const MAX_BYTES = 10 * 1024 * 1024;
+// Vercel API ルートのリクエストボディ上限 (4.5MB) より下に設定。
+// クライアント側で圧縮 (長辺 2000px / JPEG 85%) してから送る前提のため、
+// 通常は数百 KB に収まり、4MB に余裕で入る。
+const MAX_BYTES = 4 * 1024 * 1024;
 const BUCKET = "circulation-images";
 
 // 役員が回覧板用に紙書類の写真を 1 枚アップロードする受け口。
@@ -68,7 +70,7 @@ export async function POST(request: Request) {
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "画像サイズが大きすぎます (上限 10MB)" },
+      { error: "画像サイズが大きすぎます (上限 4MB)" },
       { status: 400 }
     );
   }

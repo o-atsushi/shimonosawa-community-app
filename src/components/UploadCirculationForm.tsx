@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { compressImage } from "@/lib/compress-image";
 import { getProfile, isLoggedIn } from "@/lib/liff";
 
 const TITLE_MAX = 100;
@@ -105,11 +106,21 @@ export default function UploadCirculationForm() {
     const startIdx = images.length;
     setImages((prev) => [...prev, ...newItems]);
 
-    // 1 枚ずつアップロード (並列も可だが小さい自治会なので逐次で十分)
+    // 1 枚ずつ「圧縮 → アップロード」を逐次で行う。
+    // Vercel API ルートのリクエストボディ上限 (4.5MB) に引っかからないよう、
+    // 送信前にクライアント側で長辺 2000px / JPEG 85% に圧縮する。
     for (let i = 0; i < list.length; i++) {
       const idx = startIdx + i;
       try {
-        const url = await uploadOne(idx, list[i]);
+        // 圧縮
+        let compressed: File;
+        try {
+          compressed = await compressImage(list[i]);
+        } catch {
+          // 圧縮に失敗してもオリジナルでアップロードを試みる
+          compressed = list[i];
+        }
+        const url = await uploadOne(idx, compressed);
         if (!url) throw new Error("URL 取得失敗");
         setImages((prev) => {
           const next = [...prev];
@@ -283,7 +294,11 @@ export default function UploadCirculationForm() {
           </button>
         </div>
         <p className="text-xs text-gray-400 mt-2 text-center">
-          アルバムからは **まとめて複数枚** 選択できます (最大 {MAX_IMAGES} 枚 / 1 枚 10MB まで)
+          アルバムからは **まとめて複数枚** 選択できます (最大 {MAX_IMAGES} 枚)
+          <br />
+          <span className="text-[10px]">
+            アップロード時に自動で長辺 2000px に縮小されます。
+          </span>
         </p>
 
         {images.length > 0 && (
