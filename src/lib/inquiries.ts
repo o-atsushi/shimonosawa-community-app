@@ -45,18 +45,25 @@ function formatInquiry(c: InquiryCms): Inquiry {
       : undefined,
     // 投稿者識別子をクライアントに渡し、本人のみ削除ボタンを出せるようにする
     lineUserId: c.lineUserId,
+    // isPublished フィールドが存在しない旧データは「公開済み」として扱う (後方互換)
+    isPublished: c.isPublished ?? true,
   };
 }
 
 // ソフトデリート済み (isDeleted=true) を一覧/詳細から除外する microCMS フィルタ
 const NOT_DELETED_FILTER = "isDeleted[not_equals]true";
+// 未公開 (isPublished=false) を除外するフィルタ。
+// isPublished が未定義の旧データは「公開済み」扱いするため equals false で弾く方針。
+const PUBLISHED_FILTER = "isPublished[not_equals]false";
 
+// 一般住民向け一覧。公開済み (isPublished != false) かつ未削除のみ返す。
 export async function getInquiries(
   category?: InquiryCategory
 ): Promise<Inquiry[]> {
   if (!client) return [];
   const filters = [
     NOT_DELETED_FILTER,
+    PUBLISHED_FILTER,
     category ? `category[contains]${category}` : "",
   ]
     .filter(Boolean)
@@ -72,6 +79,24 @@ export async function getInquiries(
   return res.contents.map(formatInquiry);
 }
 
+// 役員向け一覧。未公開のものも含めて返す (未削除のみ)。
+export async function getInquiriesForAdmin(): Promise<Inquiry[]> {
+  if (!client) return [];
+  const res = await client.getList<InquiryCms>({
+    endpoint: "inquiries",
+    queries: {
+      filters: NOT_DELETED_FILTER,
+      // 新着が上 (公開済みは publishedAt、未公開は createdAt が使われる)
+      orders: "-publishedAt",
+      limit: 200,
+    },
+  });
+  return res.contents.map(formatInquiry);
+}
+
+// 詳細取得。
+// 未公開のものでも返す (役員プレビュー / 詳細ページ自体での公開トグル用)。
+// 「住民にも見せていいか」は呼び出し側で isPublished をチェックする。
 export async function getInquiry(id: string): Promise<Inquiry | undefined> {
   if (!client) return undefined;
   try {
@@ -112,7 +137,12 @@ export async function getInquiryLineUserId(id: string): Promise<string | undefin
   }
 }
 
-// 住民の投稿は下書きとして保存。役員が microCMS 管理画面で公開操作をするまで一覧に出ない。
+// 住民の投稿は microCMS 上では「公開」状態で保存するが、isPublished=false で
+// 住民の一覧からは隠す。役員が LIFF 上で公開トグルすると isPublished=true になり一覧に出る。
+//
+// (以前は isDraft: true で microCMS 下書きにしていたが、その方式だと管理画面に
+//  入らないと公開操作ができなかったため、アプリ内で完結する isPublished フラグ
+//  方式に変更した)
 export async function createInquiry(
   input: InquiryInput
 ): Promise<{ id: string }> {
@@ -127,9 +157,24 @@ export async function createInquiry(
       kind: [input.kind],
       category: [input.category],
       status: ["pending"],
+      isPublished: false,
       ...(input.lineUserId ? { lineUserId: input.lineUserId } : {}),
     },
-    isDraft: true,
+  });
+}
+
+// 役員のみが呼ぶ。isPublished を更新する。所有権の検証は呼び出し側で行う。
+export async function setInquiryPublication(
+  id: string,
+  isPublished: boolean
+): Promise<void> {
+  if (!client) {
+    throw new Error("microCMS client is not configured");
+  }
+  await client.update<Pick<InquiryContent, "isPublished">>({
+    endpoint: "inquiries",
+    contentId: id,
+    content: { isPublished },
   });
 }
 
