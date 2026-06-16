@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import ArticleBody from "@/components/ArticleBody";
 import DeleteOwnPostButton from "@/components/DeleteOwnPostButton";
+import InquiryAdminPublishControl from "@/components/InquiryAdminPublishControl";
 import InquiryLikeButton from "@/components/InquiryLikeButton";
 import { getInquiry } from "@/lib/inquiries";
 import { getLikeCount } from "@/lib/inquiry-likes";
@@ -46,6 +47,17 @@ export default async function InquiryDetailPage({
       >
         ← 要望一覧に戻る
       </Link>
+
+      {/* 未公開時のバナー (誰でも表示) + 役員専用の公開トグル */}
+      {!inquiry.isPublished && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 mb-3">
+          🔒 この投稿は現在 <b>未公開</b> です。役員が確認・公開するまで他の住民の一覧には表示されません。
+        </div>
+      )}
+      <InquiryAdminPublishControl
+        inquiryId={inquiry.id}
+        isPublished={inquiry.isPublished}
+      />
 
       {/* 投稿 */}
       <article className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-4">

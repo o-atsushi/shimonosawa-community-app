@@ -112,6 +112,11 @@ export interface Inquiry {
   // 投稿者識別子。クライアントが「自分の投稿か」を判定するために返す。
   // ソフトデリート済みの投稿は一覧/詳細から除外されるため、ここに入らない
   lineUserId?: string;
+  // 役員が公開を許可しているか。
+  // microCMS 上の物理的な「下書き / 公開」とは別軸で、住民への可視性を制御する。
+  // 新規投稿は false。役員が LIFF 上で公開トグルすると true になる。
+  // (microCMS に isPublished フィールドが無い旧データは undefined → 後方互換で「公開済み」扱い)
+  isPublished: boolean;
 }
 
 export interface InquiryInput {
@@ -141,6 +146,10 @@ export interface InquiryContent {
   lineUserId?: string;
   // 投稿者によるソフトデリートフラグ
   isDeleted?: boolean;
+  // 役員が公開を許可しているかどうか。
+  // microCMS 上で boolean フィールドとして追加。
+  // 新規投稿時は false。役員が LIFF 上のトグルで切り替える。
+  isPublished?: boolean;
 }
 
 export type InquiryCms = InquiryContent & MicroCMSListContent;
