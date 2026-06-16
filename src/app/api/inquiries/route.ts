@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { createInquiry } from "@/lib/inquiries";
+import {
+  INQUIRY_CATEGORY_LABELS,
+  INQUIRY_KIND_LABELS,
+  createInquiry,
+} from "@/lib/inquiries";
+import { pushTextToGroup } from "@/lib/line-messaging";
 import { sanitizeInquiryBody } from "@/lib/sanitize";
 import type { InquiryCategory, InquiryInput, InquiryKind } from "@/types";
 
@@ -86,17 +91,29 @@ export async function POST(request: Request) {
   }
 
   try {
+    const trimmedTitle = title.trim();
     const { id } = await createInquiry({
       kind,
       category,
-      title: title.trim(),
+      title: trimmedTitle,
       body: cleanBody,
       lineUserId: safeLineUserId,
     });
 
-    // 下書き保存なので一覧に影響はないが、将来公開時に備えて残す
+    // 新規投稿は isPublished=false なので住民の一覧には出ないが、
+    // /admin/inquiries 側のキャッシュを破棄して役員にすぐ見えるようにする
     revalidatePath("/inquiries");
     revalidatePath("/");
+
+    // 役員グループに LINE で通知 (fire-and-forget)。
+    // 失敗してもインクワイアリ作成は成功扱いのまま。env 未設定なら何もしない。
+    void notifyAdminGroup({
+      kind,
+      category,
+      title: trimmedTitle,
+    }).catch((err) => {
+      console.warn("[inquiries] LINE notification failed", err);
+    });
 
     return NextResponse.json(
       {
@@ -112,4 +129,29 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+// 役員グループへの通知メッセージを組み立てて Push API を叩く。
+// LINE_MESSAGING_CHANNEL_ACCESS_TOKEN / LINE_MODERATION_GROUP_ID が
+// 未設定なら何もしない (pushTextToGroup 内でガード)。
+async function notifyAdminGroup(params: {
+  kind: InquiryKind;
+  category: InquiryCategory;
+  title: string;
+}): Promise<void> {
+  const kindLabel = INQUIRY_KIND_LABELS[params.kind];
+  const categoryLabel = INQUIRY_CATEGORY_LABELS[params.category];
+  const liffId = process.env.NEXT_PUBLIC_LIFF_ID ?? "";
+  const adminUrl = liffId
+    ? `https://liff.line.me/${liffId}/admin/inquiries`
+    : "";
+  const lines = [
+    `📨 新規${kindLabel}が投稿されました (公開待ち)`,
+    "",
+    `[${categoryLabel}] ${params.title}`,
+  ];
+  if (adminUrl) {
+    lines.push("", "確認・公開はこちら:", adminUrl);
+  }
+  await pushTextToGroup(lines.join("\n"));
 }
