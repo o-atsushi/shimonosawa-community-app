@@ -304,6 +304,58 @@ microCMS には「PDF の URL」だけを書きます。
 
 > ⚠️ **microCMS 側に `isPublished` フィールド (boolean) を追加** しておく必要があります (詳細は [8-A-2 ④](#8-a-2-セットアップ-初回のみ))。
 
+### 8-A-0-A. 投稿時に役員 LINE グループへ自動通知する (任意)
+
+住民が要望/質問を投稿した瞬間に、**役員 LINE グループに自動でプッシュ通知** することができます。
+通知文には種別・カテゴリ・タイトルと、`/admin/inquiries` (公開設定ページ) への LIFF リンクが入ります。
+
+#### 仕組み
+- 公式アカウントの **Messaging API** (Push API) 経由で、指定したグループ ID に対してテキストメッセージを送る
+- LINE Login (LIFF) チャネルとは別の **Messaging API チャネル** が必要
+- Vercel に環境変数を 2 つ設定するだけで有効化される (未設定なら通知はスキップされ、投稿動作には影響なし)
+
+#### セットアップ手順
+
+##### ① Messaging API チャネルを用意
+1. [LINE Developers Console](https://developers.line.biz/console/) にログイン
+2. 自治会のプロバイダー → **「Messaging API」** チャネル を確認 (無ければ作成)
+   - 既存の公式アカウントを Messaging API 連携した時点でチャネルが作られているはず
+3. チャネル設定の **「Messaging API」** タブを開き、**チャネルアクセストークン (長期)** を発行
+
+##### ② 公式アカウントをグループに参加させる
+1. LINE の通知先にしたいグループを開く
+2. メンバー追加で **公式アカウント** を招待
+3. グループ設定で「グループ・複数人トークへの参加を許可」を有効化していること
+   (LINE Official Account Manager → 設定 → 応答設定 → グループ・複数人トーク 「許可する」)
+
+##### ③ グループ ID を取得する
+Messaging API には「グループ一覧を取る API」が無いため、グループに公式アカウントを招待した直後の **Webhook イベント** から取得するのが一般的です。
+
+簡単な方法:
+1. LINE Developers Console → Messaging API → Webhook 設定 を一時的に有効化
+2. テキトーな URL (例えば https://webhook.site/ で取得) を Webhook URL に設定
+3. 招待したグループで何か発言 → webhook.site に届いた JSON の `source.groupId` ( `C` で始まる文字列) をコピー
+4. webhook 設定を元に戻す (アプリ側で受け取らないので不要なら無効化に)
+
+> 💡 もしくは開発担当に「グループ ID を取りたい」と頼めば、別途簡易スクリプトで取れます。
+
+##### ④ Vercel に環境変数を追加
+Vercel ダッシュボード → Settings → Environment Variables に以下 2 つを追加:
+
+| キー | 値 |
+| --- | --- |
+| `LINE_MESSAGING_CHANNEL_ACCESS_TOKEN` | ① で発行したチャネルアクセストークン (長期) |
+| `LINE_MODERATION_GROUP_ID` | ③ で取得したグループ ID (`C` で始まる文字列) |
+
+設定後、再デプロイ (= Vercel が自動で行う) すれば次の投稿から通知が届きます。
+
+##### ⑤ 動作確認
+1. テスト用アカウントで `/inquiries/new` から要望を投稿
+2. 役員グループに「📨 新規要望が投稿されました...」のメッセージが届くか確認
+3. メッセージ内の LIFF リンクをタップ → `/admin/inquiries` (公開設定ページ) が開く
+
+> 💡 通知に失敗した場合 (LINE API 5xx、ネットワーク断、トークン失効など) も、要望投稿自体は成功扱いになります。失敗内容は Vercel のサーバーログに残ります。
+
 ### 8-A-1. 画像はどこに保存されるか
 
 住民が貼り付けた画像は **Supabase Storage** の `inquiry-images` バケットに保存され、CDN 経由で配信されます。
