@@ -1,3 +1,4 @@
+import AdminTasksPageLink from "@/components/AdminTasksPageLink";
 import TaskListWithFilter from "@/components/TaskListWithFilter";
 import { getTasks } from "@/lib/tasks";
 
@@ -12,6 +13,8 @@ export default async function TasksPage() {
       <p className="text-xs text-gray-500 mb-4">
         新自治会設立に向けて取り組んでいる課題の一覧です。各課題にコメントで意見を寄せられます。
       </p>
+      {/* 役員のみに管理ページへのリンクを表示 */}
+      <AdminTasksPageLink />
 
       {tasks.length === 0 ? (
         <div className="bg-white rounded-xl p-6 text-center text-sm text-gray-500 border border-gray-100">
