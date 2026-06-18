@@ -4,6 +4,7 @@ import ArticleBody from "@/components/ArticleBody";
 import DeleteOwnPostButton from "@/components/DeleteOwnPostButton";
 import InquiryAdminPublishControl from "@/components/InquiryAdminPublishControl";
 import InquiryLikeButton from "@/components/InquiryLikeButton";
+import OwnInquiryEditLink from "@/components/OwnInquiryEditLink";
 import { getInquiry } from "@/lib/inquiries";
 import { getLikeCount } from "@/lib/inquiry-likes";
 import {
@@ -94,13 +95,21 @@ export default async function InquiryDetailPage({
               size="md"
             />
           </div>
-          <DeleteOwnPostButton
-            ownerLineUserId={inquiry.lineUserId}
-            endpoint={`/api/inquiries/${inquiry.id}`}
-            redirectTo="/inquiries"
-            confirmMessage="この投稿を削除しますか?"
-            label="この投稿を削除"
-          />
+          <div className="flex items-center gap-3">
+            {/* 投稿者本人 + 未公開時のみ「編集する」リンク表示 */}
+            <OwnInquiryEditLink
+              inquiryId={inquiry.id}
+              ownerLineUserId={inquiry.lineUserId}
+              isPublished={inquiry.isPublished}
+            />
+            <DeleteOwnPostButton
+              ownerLineUserId={inquiry.lineUserId}
+              endpoint={`/api/inquiries/${inquiry.id}`}
+              redirectTo="/inquiries"
+              confirmMessage="この投稿を削除しますか?"
+              label="この投稿を削除"
+            />
+          </div>
         </div>
         <p className="text-xs text-gray-400 mt-2">
           関心がある場合はハートを押してください。みんなの関心の高さの目安になります。

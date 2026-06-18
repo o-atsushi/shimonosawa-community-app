@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { InquiryCategory, InquiryKind } from "@/types";
+import type { Inquiry, InquiryCategory, InquiryKind } from "@/types";
 import {
   INQUIRY_CATEGORY_DESCRIPTIONS,
   INQUIRY_CATEGORY_LABELS,
@@ -34,11 +35,17 @@ function isHtmlEmpty(html: string): boolean {
     .length === 0;
 }
 
-export default function InquiryForm() {
-  const [kind, setKind] = useState<InquiryKind>("request");
-  const [category, setCategory] = useState<InquiryCategory>("operations");
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+// initial を渡すと「編集モード」になり PUT /api/inquiries/[id] を叩く。
+// 編集モードでは送信成功後に該当投稿の詳細ページに戻す。
+export default function InquiryForm({ initial }: { initial?: Inquiry } = {}) {
+  const router = useRouter();
+  const isEdit = !!initial;
+  const [kind, setKind] = useState<InquiryKind>(initial?.kind ?? "request");
+  const [category, setCategory] = useState<InquiryCategory>(
+    initial?.category ?? "operations"
+  );
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [body, setBody] = useState(initial?.body ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,11 +85,30 @@ export default function InquiryForm() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/inquiries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, category, title, body, lineUserId }),
-      });
+      let res: Response;
+      if (isEdit) {
+        // 編集モード: PUT。lineUserId は所有権検証用
+        if (!lineUserId) {
+          setError("LINE 経由でアプリを開き直してください");
+          setSubmitting(false);
+          return;
+        }
+        res = await fetch(`/api/inquiries/${initial!.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lineUserId,
+            input: { kind, category, title, body },
+          }),
+        });
+      } else {
+        // 新規投稿
+        res = await fetch("/api/inquiries", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind, category, title, body, lineUserId }),
+        });
+      }
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -91,6 +117,12 @@ export default function InquiryForm() {
         return;
       }
 
+      if (isEdit) {
+        // 編集完了 → 該当投稿の詳細に戻る
+        router.push(`/inquiries/${initial!.id}`);
+        router.refresh();
+        return;
+      }
       setSubmitted(true);
     } catch {
       setError("通信エラーが発生しました");
@@ -268,7 +300,13 @@ export default function InquiryForm() {
         disabled={submitting}
         className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 rounded-lg transition-colors"
       >
-        {submitting ? "送信中..." : "投稿する"}
+        {submitting
+          ? isEdit
+            ? "更新中..."
+            : "送信中..."
+          : isEdit
+            ? "更新する"
+            : "投稿する"}
       </button>
     </form>
   );

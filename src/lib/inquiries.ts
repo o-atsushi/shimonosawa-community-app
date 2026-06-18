@@ -95,6 +95,28 @@ export async function getInquiriesForAdmin(): Promise<Inquiry[]> {
   return res.contents.map(formatInquiry);
 }
 
+// 自分が投稿した一覧 (未公開 / 公開済み / 回答済み 含む、ソフトデリート除外)。
+// 「マイ投稿」ページで使う。
+export async function getInquiriesByOwner(
+  lineUserId: string
+): Promise<Inquiry[]> {
+  if (!client) return [];
+  const filters = [
+    NOT_DELETED_FILTER,
+    `lineUserId[equals]${lineUserId}`,
+  ].join("[and]");
+  const res = await client.getList<InquiryCms>({
+    endpoint: "inquiries",
+    queries: {
+      filters,
+      // 新着が上 (未公開は createdAt が代入される)
+      orders: "-publishedAt",
+      limit: 100,
+    },
+  });
+  return res.contents.map(formatInquiry);
+}
+
 // 詳細取得。
 // 未公開のものでも返す (役員プレビュー / 詳細ページ自体での公開トグル用)。
 // 「住民にも見せていいか」は呼び出し側で isPublished をチェックする。
@@ -160,6 +182,29 @@ export async function createInquiry(
       status: ["pending"],
       isPublished: false,
       ...(input.lineUserId ? { lineUserId: input.lineUserId } : {}),
+    },
+  });
+}
+
+// 投稿者本人が呼ぶ。未公開の投稿に限り内容を更新する。
+// 所有権と未公開判定は呼び出し側 (Route Handler) で行う。
+export async function updateOwnInquiry(
+  id: string,
+  input: Pick<InquiryInput, "kind" | "category" | "title" | "body">
+): Promise<void> {
+  if (!client) {
+    throw new Error("microCMS client is not configured");
+  }
+  await client.update<
+    Pick<InquiryContent, "kind" | "category" | "title" | "body">
+  >({
+    endpoint: "inquiries",
+    contentId: id,
+    content: {
+      kind: [input.kind],
+      category: [input.category],
+      title: input.title,
+      body: input.body,
     },
   });
 }
