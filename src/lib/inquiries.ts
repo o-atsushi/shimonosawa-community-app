@@ -80,6 +80,7 @@ export async function getInquiries(
 }
 
 // 役員向け一覧。未公開のものも含めて返す (未削除のみ)。
+// microCMS の limit は最大 100。それ以上を見たい場合はページング実装が必要。
 export async function getInquiriesForAdmin(): Promise<Inquiry[]> {
   if (!client) return [];
   const res = await client.getList<InquiryCms>({
@@ -88,7 +89,7 @@ export async function getInquiriesForAdmin(): Promise<Inquiry[]> {
       filters: NOT_DELETED_FILTER,
       // 新着が上 (公開済みは publishedAt、未公開は createdAt が使われる)
       orders: "-publishedAt",
-      limit: 200,
+      limit: 100,
     },
   });
   return res.contents.map(formatInquiry);
