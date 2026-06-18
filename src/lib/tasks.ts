@@ -2,6 +2,7 @@ import { client } from "@/lib/microcms";
 import type {
   Task,
   TaskCms,
+  TaskContent,
   TaskPriority,
   TaskStatus,
   VoteMode,
@@ -126,3 +127,73 @@ export const TASK_PRIORITY_COLORS: Record<TaskPriority, string> = {
   medium: "bg-yellow-100 text-yellow-800",
   low: "bg-slate-100 text-slate-600",
 };
+
+// ===== 役員向け: 課題の作成 / 更新 / 削除 =====
+//
+// microCMS への書き込み API キーが設定されている前提 (MICROCMS_API_KEY)。
+// 認可 (役員チェック) は呼び出し側 (Route Handler) で行う。
+
+// フォームから受け取る入力。フロントエンド側ではフラットな構造で扱い、
+// microCMS のセレクトフィールドが要求する配列形式 ([status] 等) は
+// ここで変換する。
+export interface TaskInput {
+  title: string;
+  body: string; // sanitize 済み HTML
+  status: TaskStatus;
+  priority?: TaskPriority;
+  displayOrder?: number;
+  voteOptionsRaw?: string;
+  voteDeadline?: string; // ISO date string
+  voteMode?: VoteMode;
+}
+
+function inputToCmsContent(input: TaskInput): TaskContent {
+  const content: TaskContent = {
+    title: input.title,
+    body: input.body,
+    status: [input.status],
+  };
+  if (input.priority) content.priority = [input.priority];
+  if (typeof input.displayOrder === "number")
+    content.displayOrder = input.displayOrder;
+  if (input.voteOptionsRaw) content.voteOptionsRaw = input.voteOptionsRaw;
+  if (input.voteDeadline) content.voteDeadline = input.voteDeadline;
+  if (input.voteMode) content.voteMode = [input.voteMode];
+  return content;
+}
+
+export async function createTask(input: TaskInput): Promise<{ id: string }> {
+  if (!client) {
+    throw new Error("microCMS client is not configured");
+  }
+  return client.create<TaskContent>({
+    endpoint: "tasks",
+    content: inputToCmsContent(input),
+  });
+}
+
+// 更新 (PATCH)。指定されたフィールドのみ上書きする。
+// 投票選択肢を空にしたい場合などは空文字列を明示的に渡すこと。
+export async function updateTaskContent(
+  id: string,
+  input: TaskInput
+): Promise<void> {
+  if (!client) {
+    throw new Error("microCMS client is not configured");
+  }
+  await client.update<TaskContent>({
+    endpoint: "tasks",
+    contentId: id,
+    content: inputToCmsContent(input),
+  });
+}
+
+export async function deleteTaskById(id: string): Promise<void> {
+  if (!client) {
+    throw new Error("microCMS client is not configured");
+  }
+  await client.delete({
+    endpoint: "tasks",
+    contentId: id,
+  });
+}

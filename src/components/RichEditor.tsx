@@ -22,6 +22,9 @@ interface RichEditorProps {
   // 画像アップロード時の認可 (LINE userId 必須)
   lineUserId?: string;
   placeholder?: string;
+  // 画像アップロード API のエンドポイント。デフォルトは住民投稿用。
+  // 役員専用フォーム (タスク作成等) では /api/uploads/task-image を指定する。
+  uploadEndpoint?: string;
 }
 
 export default function RichEditor({
@@ -29,6 +32,7 @@ export default function RichEditor({
   onChange,
   lineUserId,
   placeholder,
+  uploadEndpoint = "/api/uploads/inquiry-image",
 }: RichEditorProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 

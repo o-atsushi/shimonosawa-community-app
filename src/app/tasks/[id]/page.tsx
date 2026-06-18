@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import AdminTaskEditLink from "@/components/AdminTaskEditLink";
 import AdminTaskResponsesLink from "@/components/AdminTaskResponsesLink";
 import ArticleBody from "@/components/ArticleBody";
 import CommentForm from "@/components/CommentForm";
@@ -83,6 +84,10 @@ export default async function TaskDetailPage({
           {task.title}
         </h1>
         <ArticleBody html={task.body} />
+        {/* 役員のみ「編集」リンクを表示 (投票機能の有無に依存しない) */}
+        <div className="mt-3 text-right">
+          <AdminTaskEditLink taskId={task.id} />
+        </div>
       </article>
 
       {hasVoting && (
