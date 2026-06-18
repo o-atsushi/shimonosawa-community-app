@@ -23,13 +23,38 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
   }
-  const admin = await isAdminLineUser(lineUserId);
+  let admin = false;
+  try {
+    admin = await isAdminLineUser(lineUserId);
+  } catch (err) {
+    console.error("[admin/inquiries] isAdminLineUser threw", err);
+    return NextResponse.json(
+      {
+        error:
+          "役員判定の取得に失敗しました (Supabase / members テーブルの設定をご確認ください)",
+      },
+      { status: 500 }
+    );
+  }
   if (!admin) {
     return NextResponse.json(
       { error: "このページの閲覧権限がありません (役員のみ)" },
       { status: 403 }
     );
   }
-  const inquiries = await getInquiriesForAdmin();
-  return NextResponse.json({ inquiries });
+  try {
+    const inquiries = await getInquiriesForAdmin();
+    return NextResponse.json({ inquiries });
+  } catch (err) {
+    console.error("[admin/inquiries] getInquiriesForAdmin threw", err);
+    const detail = err instanceof Error ? err.message : String(err);
+    return NextResponse.json(
+      {
+        error:
+          "microCMS からの一覧取得に失敗しました。microCMS の inquiries スキーマに `isPublished` (boolean) フィールドを追加済みかご確認ください。",
+        detail: detail.slice(0, 500),
+      },
+      { status: 500 }
+    );
+  }
 }
