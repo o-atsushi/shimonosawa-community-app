@@ -61,7 +61,13 @@ export default function AdminInquiryListPage() {
         }
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
-          setErrorMsg(d.error ?? "一覧の取得に失敗しました");
+          // 役員自身に詳細を見せる: error + (任意) detail を画面に出す。
+          // detail はサーバーが意図的に返した時のみ含まれる (microCMS 由来の例外メッセージなど)
+          const composed =
+            (d.error ?? "一覧の取得に失敗しました") +
+            (d.detail ? `\n詳細: ${d.detail}` : "");
+          setErrorMsg(composed);
+          if (d.detail) console.error("[admin/inquiries] detail:", d.detail);
           setStatus("error");
           return;
         }
@@ -114,7 +120,7 @@ export default function AdminInquiryListPage() {
   }
   if (status === "error") {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700 whitespace-pre-wrap">
         {errorMsg ?? "エラーが発生しました"}
       </div>
     );
