@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AdminInquiriesPageLink from "@/components/AdminInquiriesPageLink";
 import InquiryCard from "@/components/InquiryCard";
+import MyInquiriesLink from "@/components/MyInquiriesLink";
 import { getInquiries } from "@/lib/inquiries";
 import { getLikeCounts } from "@/lib/inquiry-likes";
 
@@ -18,8 +19,12 @@ export default async function InquiriesPage() {
       <p className="text-xs text-gray-500 mb-4">
         自治会の運営・イベント・設備・アプリへの要望と、役員からの回答を掲載しています。
       </p>
-      {/* 役員のみに「公開設定」リンクを表示 */}
-      <AdminInquiriesPageLink />
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* LIFF ログイン済み住民に「自分の投稿」リンクを表示 */}
+        <MyInquiriesLink />
+        {/* 役員のみに「公開設定」リンクを表示 */}
+        <AdminInquiriesPageLink />
+      </div>
 
       {inquiries.length === 0 ? (
         <div className="bg-white rounded-xl p-6 text-center text-sm text-gray-500 border border-gray-100">
