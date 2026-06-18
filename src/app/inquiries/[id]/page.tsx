@@ -3,6 +3,7 @@ import Link from "next/link";
 import ArticleBody from "@/components/ArticleBody";
 import DeleteOwnPostButton from "@/components/DeleteOwnPostButton";
 import InquiryAdminPublishControl from "@/components/InquiryAdminPublishControl";
+import InquiryAdminResponseControl from "@/components/InquiryAdminResponseControl";
 import InquiryLikeButton from "@/components/InquiryLikeButton";
 import OwnInquiryEditLink from "@/components/OwnInquiryEditLink";
 import { getInquiry } from "@/lib/inquiries";
@@ -116,7 +117,10 @@ export default async function InquiryDetailPage({
         </p>
       </article>
 
-      {/* 回答 */}
+      {/* 役員専用: 回答 / ステータス操作 */}
+      <InquiryAdminResponseControl inquiry={inquiry} />
+
+      {/* 回答 (住民に見える) */}
       {inquiry.response ? (
         <article className="bg-green-50 rounded-xl p-5 shadow-sm border border-green-200">
           <div className="flex items-center gap-2 mb-3 flex-wrap">

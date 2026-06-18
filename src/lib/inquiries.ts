@@ -6,6 +6,7 @@ import type {
   InquiryContent,
   InquiryInput,
   InquiryKind,
+  InquiryStatus,
 } from "@/types";
 
 // 旧スキーマ (テキストエリア) の投稿は HTML タグを含まないプレーン文字列で
@@ -206,6 +207,65 @@ export async function updateOwnInquiry(
       title: input.title,
       body: input.body,
     },
+  });
+}
+
+// 役員のみが呼ぶ。回答 (responseBody / respondedBy / respondedAt の 3 フィールド)
+// を一括でセットする。所有権の検証は呼び出し側で行う。
+// respondedAt は呼び出し時刻 (ISO) を自動セット。
+export async function setInquiryResponse(
+  id: string,
+  responseBody: string,
+  respondedBy: string
+): Promise<void> {
+  if (!client) {
+    throw new Error("microCMS client is not configured");
+  }
+  await client.update<
+    Pick<InquiryContent, "responseBody" | "respondedAt" | "respondedBy">
+  >({
+    endpoint: "inquiries",
+    contentId: id,
+    content: {
+      responseBody,
+      respondedBy,
+      respondedAt: new Date().toISOString(),
+    },
+  });
+}
+
+// 役員のみが呼ぶ。回答 3 フィールドをすべて空にする (回答を取り消す)。
+// microCMS では「空文字を送ると undefined になる」挙動を期待 (フィールド削除と
+// 同等)。挙動が違ったら呼び出し側 / マニュアルでフォローする。
+export async function clearInquiryResponse(id: string): Promise<void> {
+  if (!client) {
+    throw new Error("microCMS client is not configured");
+  }
+  await client.update<
+    Pick<InquiryContent, "responseBody" | "respondedAt" | "respondedBy">
+  >({
+    endpoint: "inquiries",
+    contentId: id,
+    content: {
+      responseBody: "",
+      respondedBy: "",
+      respondedAt: "",
+    },
+  });
+}
+
+// 役員のみが呼ぶ。status を変更する (受付中 / 対応中 / 回答済み)。
+export async function setInquiryStatus(
+  id: string,
+  status: InquiryStatus
+): Promise<void> {
+  if (!client) {
+    throw new Error("microCMS client is not configured");
+  }
+  await client.update<Pick<InquiryContent, "status">>({
+    endpoint: "inquiries",
+    contentId: id,
+    content: { status: [status] },
   });
 }
 
