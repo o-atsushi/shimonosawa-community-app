@@ -7,6 +7,7 @@ import type { VoteMode } from "@/types";
 const LINE_USER_ID_PATTERN = /^U[0-9a-f]{32}$/;
 const REASON_MAX = 200;
 const FREETEXT_MAX = 1000;
+const HOUSEHOLD_MAX = 100;
 
 // 投票 / 変更。3 モード共通エンドポイント。
 // body: {
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
   let body: {
     taskId?: string;
     lineUserId?: string;
+    household?: string;
     selectedOptions?: string[];
     freeText?: string;
     reason?: string;
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { taskId, lineUserId, selectedOptions, freeText, reason } = body;
+  const { taskId, lineUserId, household, selectedOptions, freeText, reason } = body;
 
   if (!taskId || typeof taskId !== "string") {
     return NextResponse.json({ error: "課題IDが不正です" }, { status: 400 });
@@ -45,6 +47,20 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
   }
+  // 世帯名は新規投票で必須 (1 世帯 1 票の運用)
+  if (typeof household !== "string" || household.trim().length === 0) {
+    return NextResponse.json(
+      { error: "世帯名を入力してください (1 世帯 1 票の集計に使います)" },
+      { status: 400 }
+    );
+  }
+  if (household.length > HOUSEHOLD_MAX) {
+    return NextResponse.json(
+      { error: `世帯名は${HOUSEHOLD_MAX}文字以内で入力してください` },
+      { status: 400 }
+    );
+  }
+  const trimmedHousehold = household.trim();
 
   // 課題情報を取り、モード別バリデーション
   const task = await getTask(taskId);
@@ -133,6 +149,7 @@ export async function POST(request: Request) {
     await castVote(
       taskId,
       lineUserId,
+      trimmedHousehold,
       mode,
       normalizedOptions,
       normalizedFreeText,
@@ -150,10 +167,11 @@ export async function POST(request: Request) {
 }
 
 // 自分の投票を取り消す (取り下げ)。
-// body: { taskId, lineUserId }
+// body: { taskId, lineUserId, household? }
+// 世帯名を渡すと該当世帯の票も含めて削除する (家族の誰かが投じた票を取り下げ可能)。
 // 期限切れの場合は受け付けない。
 export async function DELETE(request: Request) {
-  let body: { taskId?: string; lineUserId?: string };
+  let body: { taskId?: string; lineUserId?: string; household?: string };
   try {
     body = await request.json();
   } catch {
@@ -162,7 +180,11 @@ export async function DELETE(request: Request) {
       { status: 400 }
     );
   }
-  const { taskId, lineUserId } = body;
+  const { taskId, lineUserId, household } = body;
+  const trimmedHousehold =
+    typeof household === "string" && household.trim().length > 0
+      ? household.trim().slice(0, HOUSEHOLD_MAX)
+      : null;
   if (!taskId || typeof taskId !== "string") {
     return NextResponse.json({ error: "課題IDが不正です" }, { status: 400 });
   }
@@ -186,7 +208,7 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    await withdrawVote(taskId, lineUserId);
+    await withdrawVote(taskId, lineUserId, trimmedHousehold);
     revalidatePath(`/tasks/${taskId}`);
     return NextResponse.json({ ok: true });
   } catch (err) {
