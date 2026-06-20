@@ -12,7 +12,7 @@ const LINE_USER_ID_PATTERN = /^U[0-9a-f]{32}$/;
 //     reason: string | null
 //   }
 export async function POST(request: Request) {
-  let body: { taskId?: string; lineUserId?: string };
+  let body: { taskId?: string; lineUserId?: string; household?: string };
   try {
     body = await request.json();
   } catch {
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  const { taskId, lineUserId } = body;
+  const { taskId, lineUserId, household } = body;
   if (!taskId || typeof taskId !== "string") {
     return NextResponse.json({ error: "課題IDが不正です" }, { status: 400 });
   }
@@ -32,9 +32,14 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
   }
+  // 世帯名指定があればそれで照会 (家族の誰かが投じた票を全員で見られる)
+  const householdKey =
+    typeof household === "string" && household.trim().length > 0
+      ? household.trim().slice(0, 100)
+      : null;
 
   const task = await getTask(taskId);
-  const own = await getOwnVote(taskId, lineUserId);
+  const own = await getOwnVote(taskId, lineUserId, householdKey);
   if (!own) {
     return NextResponse.json({
       selectedOptions: [],

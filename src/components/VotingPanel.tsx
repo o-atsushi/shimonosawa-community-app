@@ -62,6 +62,9 @@ export default function VotingPanel({
   const [lineUserId, setLineUserId] = useState<string | undefined>();
   const [authChecked, setAuthChecked] = useState(false);
 
+  // 世帯名 (1 世帯 1 票の集計キー)。localStorage に永続化して次回プリフィル。
+  const [household, setHousehold] = useState<string>("");
+
   // 自分の保存済み回答
   const [myOptions, setMyOptions] = useState<string[]>([]);
   const [myFreeText, setMyFreeText] = useState<string>("");
@@ -84,6 +87,15 @@ export default function VotingPanel({
 
   useEffect(() => {
     let cancelled = false;
+    // localStorage から世帯名をプリフィル (前回投票で保存したもの)
+    if (typeof window !== "undefined") {
+      try {
+        const saved = window.localStorage.getItem("household_name");
+        if (saved) setHousehold(saved);
+      } catch {
+        // ignore (Safari プライベートブラウズ等)
+      }
+    }
     if (!isLoggedIn()) {
       setAuthChecked(true);
       return;
@@ -100,10 +112,20 @@ export default function VotingPanel({
         if (!uid) return;
         setLineUserId(uid);
         try {
+          // /api/votes/me に世帯名も渡す: 家族の誰かが投票していれば
+          // (line_user_id が違っても) その世帯の票を「自分の票」として復元
+          const savedHousehold =
+            typeof window !== "undefined"
+              ? window.localStorage.getItem("household_name") ?? ""
+              : "";
           const res = await fetch("/api/votes/me", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ taskId, lineUserId: uid }),
+            body: JSON.stringify({
+              taskId,
+              lineUserId: uid,
+              household: savedHousehold || undefined,
+            }),
           });
           if (res.ok) {
             const data = await res.json();
@@ -149,6 +171,12 @@ export default function VotingPanel({
 
   async function handleSubmit() {
     if (!lineUserId || closed) return;
+    // 世帯名は必須 (1 世帯 1 票の集計キー)
+    const trimmedHousehold = household.trim();
+    if (trimmedHousehold.length === 0) {
+      setError("世帯名を入力してください (1 世帯 1 票で集計します)");
+      return;
+    }
     if (voteMode === "freetext") {
       if (freeText.trim().length === 0) {
         setError("回答を入力してください");
@@ -181,6 +209,7 @@ export default function VotingPanel({
         body: JSON.stringify({
           taskId,
           lineUserId,
+          household: trimmedHousehold,
           selectedOptions: voteMode === "freetext" ? undefined : selected,
           freeText: voteMode === "freetext" ? freeText.trim() : undefined,
           reason:
@@ -193,6 +222,12 @@ export default function VotingPanel({
         const data = await res.json().catch(() => ({}));
         setError(data.error ?? "送信に失敗しました");
         return;
+      }
+      // 世帯名を localStorage に保存して次回プリフィルできるようにする
+      try {
+        window.localStorage.setItem("household_name", trimmedHousehold);
+      } catch {
+        // ignore
       }
       // ローカル状態を「保存済み」として更新
       if (voteMode === "freetext") {
@@ -219,7 +254,11 @@ export default function VotingPanel({
       const res = await fetch("/api/votes", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, lineUserId }),
+        body: JSON.stringify({
+          taskId,
+          lineUserId,
+          household: household.trim() || undefined,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -251,6 +290,7 @@ export default function VotingPanel({
     !submitting &&
     !closed &&
     !noChange &&
+    household.trim().length > 0 &&
     (voteMode === "freetext"
       ? freeText.trim().length > 0
       : selected.length > 0 &&
@@ -290,6 +330,34 @@ export default function VotingPanel({
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-700 mb-3">
           回答受付は終了しました。
           {voteMode !== "freetext" && "集計結果のみご覧いただけます。"}
+        </div>
+      )}
+
+      {/* 世帯名入力 (1 世帯 1 票の集計キー) */}
+      {!closed && (
+        <div className="mb-4">
+          <label
+            htmlFor={`household-${taskId}`}
+            className="block text-xs font-bold text-gray-700 mb-1"
+          >
+            世帯名 (必須)
+            <span className="text-gray-400 font-normal ml-2">
+              ご家族で 1 票としてカウントするための識別名
+            </span>
+          </label>
+          <input
+            id={`household-${taskId}`}
+            type="text"
+            value={household}
+            onChange={(e) => setHousehold(e.target.value)}
+            maxLength={100}
+            disabled={!lineUserId || submitting}
+            placeholder="例: 山田家"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            💡 同じ世帯名で再投票すると、ご家族の前の回答が上書きされます。次回からは自動で入力されます。
+          </p>
         </div>
       )}
 
