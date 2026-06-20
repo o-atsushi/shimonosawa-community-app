@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import {
   clearInquiryResponse,
+  getInquiry,
   setInquiryResponse,
 } from "@/lib/inquiries";
 import { isAdminLineUser } from "@/lib/members";
+import { pushTextToUser } from "@/lib/line-messaging";
 
 const LINE_USER_ID_PATTERN = /^U[0-9a-f]{32}$/;
 const BODY_MAX = 2000;
@@ -65,11 +67,40 @@ export async function PUT(
     );
   }
 
+  // 通知用に元の投稿者情報を事前取得 (失敗しても本処理は続行)
+  let target: Awaited<ReturnType<typeof getInquiry>> = undefined;
+  try {
+    target = await getInquiry(id);
+  } catch (err) {
+    console.warn("[admin/inquiries/response] fetch before save failed", err);
+  }
+
   try {
     await setInquiryResponse(id, responseBody.trim(), respondedBy.trim());
     revalidatePath("/inquiries");
     revalidatePath(`/inquiries/${id}`);
     revalidatePath("/");
+
+    // 投稿者に LINE で通知 (fire-and-forget)。
+    // env 未設定 / 投稿者の lineUserId が無い場合はスキップ。
+    if (target?.lineUserId) {
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID ?? "";
+      const detailUrl = liffId
+        ? `https://liff.line.me/${liffId}/inquiries/${id}`
+        : "";
+      const lines = [
+        `💬 ご投稿に役員から回答が届きました`,
+        "",
+        `タイトル: ${target.title}`,
+      ];
+      if (detailUrl) {
+        lines.push("", "回答はこちら:", detailUrl);
+      }
+      void pushTextToUser(target.lineUserId, lines.join("\n")).catch((err) => {
+        console.warn("[admin/inquiries/response] author notify failed", err);
+      });
+    }
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[admin/inquiries/response] save failed", err);
