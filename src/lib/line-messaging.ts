@@ -53,3 +53,16 @@ export async function pushTextToGroup(
     );
   }
 }
+
+// 個別の LINE ユーザーにテキストプッシュする薄いラッパー。
+// pushTextToGroup の to オプションを利用するだけだが、用途が明確になるよう
+// 別名で提供する。
+// 受信者が公式アカウントを友だち追加していない / ブロックしている場合は
+// LINE 側で 400/403 が返るが、その場合も throw する。呼び出し側で
+// fire-and-forget する想定。
+export async function pushTextToUser(
+  lineUserId: string,
+  text: string
+): Promise<void> {
+  await pushTextToGroup(text, { to: lineUserId });
+}
