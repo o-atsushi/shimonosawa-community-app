@@ -8,6 +8,7 @@ import CommentList from "@/components/CommentList";
 import VoteReasonsList from "@/components/VoteReasonsList";
 import VotingPanel from "@/components/VotingPanel";
 import { getCommentsByTaskId } from "@/lib/comments";
+import { getLikeCounts as getCommentLikeCounts } from "@/lib/comment-likes";
 import { getVoteReasons, getVoteSummary } from "@/lib/votes";
 import {
   TASK_PRIORITY_COLORS,
@@ -47,6 +48,10 @@ export default async function TaskDetailPage({
   // freetext モードは個人回答なので住民側の理由一覧は出さない
   const showReasons =
     task.voteMode === "single" && voteReasons.length > 0;
+  // コメントのいいね数を一括取得 (0 件時は空クエリでスキップ)
+  const commentLikeCounts = await getCommentLikeCounts(
+    comments.map((c) => c.id)
+  );
 
   return (
     <div>
@@ -116,7 +121,7 @@ export default async function TaskDetailPage({
         <h2 className="text-base font-bold text-gray-800 mb-3">
           💬 コメント ({comments.length})
         </h2>
-        <CommentList comments={comments} />
+        <CommentList comments={comments} likeCounts={commentLikeCounts} />
       </section>
 
       <section className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
