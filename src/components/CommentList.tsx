@@ -1,3 +1,4 @@
+import CommentLikeButton from "@/components/CommentLikeButton";
 import DeleteOwnPostButton from "@/components/DeleteOwnPostButton";
 import type { Comment } from "@/types";
 
@@ -11,7 +12,13 @@ function formatDateTime(iso: string): string {
   return `${yyyy}/${mm}/${dd} ${hh}:${mi}`;
 }
 
-export default function CommentList({ comments }: { comments: Comment[] }) {
+export default function CommentList({
+  comments,
+  likeCounts = {},
+}: {
+  comments: Comment[];
+  likeCounts?: Record<string, number>;
+}) {
   if (comments.length === 0) {
     return (
       <div className="bg-gray-50 rounded-xl p-5 text-center border border-gray-200">
@@ -40,7 +47,12 @@ export default function CommentList({ comments }: { comments: Comment[] }) {
           <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
             {comment.body}
           </p>
-          <div className="flex justify-end mt-2">
+          <div className="flex items-center justify-between mt-3 gap-2">
+            <CommentLikeButton
+              commentId={comment.id}
+              taskId={comment.taskId}
+              initialCount={likeCounts[comment.id] ?? 0}
+            />
             <DeleteOwnPostButton
               ownerLineUserId={comment.lineUserId}
               endpoint={`/api/comments/${comment.id}`}
