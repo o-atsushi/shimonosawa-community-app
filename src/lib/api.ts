@@ -17,6 +17,8 @@ function formatArticle(article: Article): FormattedArticle {
     title: article.title ?? "",
     body: article.body ?? "",
     category: article.category?.[0] ?? "news",
+    // サブカテゴリ未設定の旧記事は「自治会運営」扱い
+    subCategory: article.subCategory?.[0] ?? "association",
     date: isoDate.split("T")[0],
     imageUrl: article.image?.url,
     important: article.important ?? false,
