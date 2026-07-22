@@ -14,17 +14,28 @@ export default async function LifePage() {
         {articles.map((article) => (
           <article
             key={article.id}
-            className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
+            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
           >
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs text-gray-400 ml-auto">
-                {article.date}
-              </span>
+            {article.imageUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={article.imageUrl}
+                alt={article.title}
+                className="w-full h-auto"
+                loading="lazy"
+              />
+            )}
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-gray-400 ml-auto">
+                  {article.date}
+                </span>
+              </div>
+              <h3 className="font-bold text-gray-800 text-sm mb-2">
+                {article.title}
+              </h3>
+              <ArticleBody html={article.body} />
             </div>
-            <h3 className="font-bold text-gray-800 text-sm mb-2">
-              {article.title}
-            </h3>
-            <ArticleBody html={article.body} />
           </article>
         ))}
       </div>
