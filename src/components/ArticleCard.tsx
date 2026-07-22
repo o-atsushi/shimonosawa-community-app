@@ -24,33 +24,48 @@ export default function ArticleCard({ article }: { article: FormattedArticle }) 
   return (
     <Link
       href={href}
-      className="block rounded-xl bg-white p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+      className="block rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow overflow-hidden"
     >
-      <div className="flex items-center gap-2 mb-2">
-        <span
-          className={`text-xs px-2 py-0.5 rounded-full font-medium ${categoryColors[article.category]}`}
-        >
-          {categoryLabels[article.category]}
-        </span>
-        {article.important && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-red-500 text-white font-medium">
-            重要
+      {/* microCMS の image フィールドがあればカード上部にサムネイル表示 */}
+      {article.imageUrl && (
+        <div className="relative bg-gray-100 aspect-[16/9] overflow-hidden">
+          {/* next/image は使わず素の img で簡素化 (microCMS CDN で最適化不要) */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={article.imageUrl}
+            alt={article.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
+      )}
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full font-medium ${categoryColors[article.category]}`}
+          >
+            {categoryLabels[article.category]}
           </span>
+          {article.important && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-red-500 text-white font-medium">
+              重要
+            </span>
+          )}
+          <span className="text-xs text-gray-400 ml-auto">{article.date}</span>
+        </div>
+        <h3 className="font-bold text-gray-800 text-sm leading-snug mb-1">
+          {article.title}
+        </h3>
+        {excerpt && (
+          <p className="text-xs text-gray-500 line-clamp-2">{excerpt}</p>
         )}
-        <span className="text-xs text-gray-400 ml-auto">{article.date}</span>
+        {article.pdf && (
+          <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+            <span>📄</span>
+            <span>PDF添付あり</span>
+          </p>
+        )}
       </div>
-      <h3 className="font-bold text-gray-800 text-sm leading-snug mb-1">
-        {article.title}
-      </h3>
-      {excerpt && (
-        <p className="text-xs text-gray-500 line-clamp-2">{excerpt}</p>
-      )}
-      {article.pdf && (
-        <p className="text-xs text-gray-600 mt-2 flex items-center gap-1">
-          <span>📄</span>
-          <span>PDF添付あり</span>
-        </p>
-      )}
     </Link>
   );
 }

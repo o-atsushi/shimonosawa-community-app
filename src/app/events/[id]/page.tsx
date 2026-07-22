@@ -27,12 +27,22 @@ export default async function EventDetailPage({
   return (
     <div>
       <Link
-        href="/events"
+        href="/news"
         className="text-green-600 text-sm mb-4 inline-block hover:underline"
       >
-        ← イベント一覧に戻る
+        ← お知らせ一覧に戻る
       </Link>
-      <article className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 mb-4">
+      <article className="bg-white rounded-xl shadow-sm border border-gray-100 mb-4 overflow-hidden">
+        {article.imageUrl && (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={article.imageUrl}
+            alt={article.title}
+            className="w-full h-auto"
+            loading="lazy"
+          />
+        )}
+        <div className="p-5">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">
             イベント
@@ -54,6 +64,7 @@ export default async function EventDetailPage({
         </h1>
         <ArticleBody html={article.body} />
         {article.pdf && <PdfViewer pdf={article.pdf} />}
+        </div>
       </article>
 
       {article.rsvpEnabled && rsvpSummary && (
