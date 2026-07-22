@@ -2,6 +2,10 @@ import type { MicroCMSListContent, MicroCMSImage } from "microcms-js-sdk";
 
 export type Category = "news" | "events" | "life";
 
+// お知らせ (news/events) のサブカテゴリ。/news 一覧でタブ切替できる。
+// 既存記事に値が入っていない場合は "association" (自治会運営) 扱いにする。
+export type ArticleSubCategory = "association" | "land_development";
+
 // 添付PDF（Cloudflare R2 等でホスティングしたPDFを想定）
 export interface PdfAttachment {
   url: string;
@@ -16,6 +20,9 @@ export interface ArticleContent {
   // microCMS 側でも summary フィールドは未入力で OK (型から外したので参照されない)
   body: string; // リッチエディタ (HTML)
   category: [Category]; // セレクトフィールド
+  // お知らせのサブカテゴリ (自治会運営 / 土地開発)。microCMS ではセレクトフィールドの単一選択。
+  // 未設定 (旧記事) は "association" として扱う (formatArticle でフォールバック)。
+  subCategory?: [ArticleSubCategory];
   image?: MicroCMSImage;
   important?: boolean;
   // PDF 添付（microCMS 側では 3フィールド: pdfUrl / pdfFileName / pdfFileSize）
@@ -36,6 +43,8 @@ export interface FormattedArticle {
   title: string;
   body: string;
   category: Category;
+  // お知らせのサブカテゴリ。未設定は "association" にフォールバック。
+  subCategory: ArticleSubCategory;
   date: string;
   imageUrl?: string;
   important: boolean;
