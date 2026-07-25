@@ -290,6 +290,24 @@ export interface CommentInput {
   lineUserId: string;
 }
 
+// ===== お知らせ (articles) ごとのコメント (Supabase article_comments) =====
+// 課題コメントとほぼ同構造だが、task_id ではなく article_id (microCMS の記事 id)
+// を FK として持つ別テーブルとして分離する。
+
+export interface ArticleComment {
+  id: string;
+  articleId: string;
+  body: string;
+  createdAt: string;
+  lineUserId?: string;
+}
+
+export interface ArticleCommentInput {
+  articleId: string;
+  body: string;
+  lineUserId: string;
+}
+
 // ===== デジタル回覧板 (Supabase circulations) =====
 //
 // 役員が紙の回覧書類 (市役所からの通知など) をアプリで撮影してアップロードし、
