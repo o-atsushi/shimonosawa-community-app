@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getArticleById } from "@/lib/api";
+import { getArticleComments } from "@/lib/article-comments";
 import { getRsvpSummary } from "@/lib/rsvps";
 import ArticleBody from "@/components/ArticleBody";
+import ArticleCommentForm from "@/components/ArticleCommentForm";
+import ArticleCommentList from "@/components/ArticleCommentList";
 import PdfViewer from "@/components/PdfViewer";
 import RsvpPanel from "@/components/RsvpPanel";
 
@@ -15,7 +18,10 @@ export default async function EventDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const article = await getArticleById(id);
+  const [article, comments] = await Promise.all([
+    getArticleById(id),
+    getArticleComments(id),
+  ]);
 
   if (!article) return notFound();
 
@@ -70,6 +76,16 @@ export default async function EventDetailPage({
       {article.rsvpEnabled && rsvpSummary && (
         <RsvpPanel articleId={article.id} summary={rsvpSummary} />
       )}
+
+      <section className="mt-6">
+        <h2 className="text-base font-bold text-gray-800 mb-3">
+          💬 コメント ({comments.length})
+        </h2>
+        <ArticleCommentList comments={comments} articleCategory="events" />
+        <div className="mt-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <ArticleCommentForm articleId={id} articleCategory="events" />
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,8 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getArticleById } from "@/lib/api";
+import { getArticleComments } from "@/lib/article-comments";
 import ArticleBody from "@/components/ArticleBody";
+import ArticleCommentForm from "@/components/ArticleCommentForm";
+import ArticleCommentList from "@/components/ArticleCommentList";
 import PdfViewer from "@/components/PdfViewer";
+
+// コメント投稿を即時反映したいので短めに
+export const revalidate = 30;
 
 export default async function NewsDetailPage({
   params,
@@ -10,7 +16,10 @@ export default async function NewsDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const article = await getArticleById(id);
+  const [article, comments] = await Promise.all([
+    getArticleById(id),
+    getArticleComments(id),
+  ]);
 
   if (!article) return notFound();
 
@@ -51,6 +60,16 @@ export default async function NewsDetailPage({
         {article.pdf && <PdfViewer pdf={article.pdf} />}
         </div>
       </article>
+
+      <section className="mt-6">
+        <h2 className="text-base font-bold text-gray-800 mb-3">
+          💬 コメント ({comments.length})
+        </h2>
+        <ArticleCommentList comments={comments} articleCategory="news" />
+        <div className="mt-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <ArticleCommentForm articleId={id} articleCategory="news" />
+        </div>
+      </section>
     </div>
   );
 }
