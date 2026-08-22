@@ -11,11 +11,14 @@ import { getCommentsByTaskId } from "@/lib/comments";
 import { getLikeCounts as getCommentLikeCounts } from "@/lib/comment-likes";
 import { getVoteReasons, getVoteSummary } from "@/lib/votes";
 import {
+  RESOLUTION_OUTCOME_COLORS,
+  RESOLUTION_OUTCOME_LABELS,
   TASK_PRIORITY_COLORS,
   TASK_PRIORITY_LABELS,
   TASK_STATUS_COLORS,
   TASK_STATUS_LABELS,
   getTask,
+  hasResolution,
   hasVoting as hasVotingForTask,
 } from "@/lib/tasks";
 
@@ -45,6 +48,7 @@ export default async function TaskDetailPage({
 
   if (!task) return notFound();
   const hasVoting = hasVotingForTask(task);
+  const isResolved = hasResolution(task);
   // freetext モードは個人回答なので住民側の理由一覧は出さない
   const showReasons =
     task.voteMode === "single" && voteReasons.length > 0;
@@ -94,6 +98,31 @@ export default async function TaskDetailPage({
           <AdminTaskEditLink taskId={task.id} />
         </div>
       </article>
+
+      {/* 議決結果へのリンク (常に表示。結果ページ側で「まだ議決されていません」を出す) */}
+      <Link
+        href={`/tasks/${task.id}/resolution`}
+        className="block mb-6 bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+      >
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-bold text-gray-800">
+            🏛️ 議決結果まとめ
+          </span>
+          <span
+            className={`text-xs font-medium px-2 py-0.5 rounded-full ${RESOLUTION_OUTCOME_COLORS[task.resolutionOutcome]}`}
+          >
+            {RESOLUTION_OUTCOME_LABELS[task.resolutionOutcome]}
+          </span>
+          {task.resolutionDate && (
+            <span className="text-xs text-gray-500">
+              ({task.resolutionDate})
+            </span>
+          )}
+          <span className="text-xs text-green-600 ml-auto">
+            {isResolved ? "詳細を見る →" : "詳細ページを開く →"}
+          </span>
+        </div>
+      </Link>
 
       {hasVoting && (
         <section className="mb-6">
