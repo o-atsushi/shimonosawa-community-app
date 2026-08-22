@@ -1,5 +1,6 @@
 import { client } from "@/lib/microcms";
 import type {
+  ResolutionOutcome,
   Task,
   TaskCms,
   TaskContent,
@@ -9,6 +10,12 @@ import type {
 } from "@/types";
 
 const VALID_VOTE_MODES: VoteMode[] = ["single", "multiple", "freetext"];
+const VALID_RESOLUTION_OUTCOMES: ResolutionOutcome[] = [
+  "approved",
+  "rejected",
+  "deferred",
+  "undecided",
+];
 
 // 改行区切りの投票選択肢を配列にパース。空白行と前後空白は除去。
 function parseVoteOptions(raw?: string): string[] {
@@ -23,6 +30,11 @@ function formatTask(c: TaskCms): Task {
   const rawMode = c.voteMode?.[0];
   const voteMode: VoteMode =
     rawMode && VALID_VOTE_MODES.includes(rawMode) ? rawMode : "single";
+  const rawOutcome = c.resolutionOutcome?.[0];
+  const resolutionOutcome: ResolutionOutcome =
+    rawOutcome && VALID_RESOLUTION_OUTCOMES.includes(rawOutcome)
+      ? rawOutcome
+      : "undecided";
   return {
     id: c.id,
     title: c.title,
@@ -35,9 +47,23 @@ function formatTask(c: TaskCms): Task {
       voteMode === "freetext" ? [] : parseVoteOptions(c.voteOptionsRaw),
     voteDeadline: c.voteDeadline,
     voteMode,
+    resolutionOutcome,
+    resolutionSummary: c.resolutionSummary ?? "",
+    resolutionDate: c.resolutionDate,
     publishedAt: c.publishedAt ?? c.createdAt,
     updatedAt: c.updatedAt,
   };
+}
+
+// 議決結果が「未入力」かどうか (未決 かつ サマリも空 かつ 日付も無い)
+export function hasResolution(
+  task: Pick<Task, "resolutionOutcome" | "resolutionSummary" | "resolutionDate">
+): boolean {
+  return (
+    task.resolutionOutcome !== "undecided" ||
+    task.resolutionSummary.trim().length > 0 ||
+    !!task.resolutionDate
+  );
 }
 
 // 投票機能が有効か。
@@ -128,6 +154,21 @@ export const TASK_PRIORITY_COLORS: Record<TaskPriority, string> = {
   low: "bg-slate-100 text-slate-600",
 };
 
+// 議決結果ラベル / 色
+export const RESOLUTION_OUTCOME_LABELS: Record<ResolutionOutcome, string> = {
+  approved: "可決",
+  rejected: "否決",
+  deferred: "保留",
+  undecided: "未決",
+};
+
+export const RESOLUTION_OUTCOME_COLORS: Record<ResolutionOutcome, string> = {
+  approved: "bg-emerald-100 text-emerald-800",
+  rejected: "bg-red-100 text-red-700",
+  deferred: "bg-yellow-100 text-yellow-800",
+  undecided: "bg-gray-100 text-gray-600",
+};
+
 // ===== 役員向け: 課題の作成 / 更新 / 削除 =====
 //
 // microCMS への書き込み API キーが設定されている前提 (MICROCMS_API_KEY)。
@@ -195,5 +236,34 @@ export async function deleteTaskById(id: string): Promise<void> {
   await client.delete({
     endpoint: "tasks",
     contentId: id,
+  });
+}
+
+// 議決結果 (3 フィールド) だけを更新する PATCH。
+// 空文字を渡せばそのフィールドをクリアできる (microCMS 挙動に依存)。
+export async function setTaskResolution(
+  id: string,
+  input: {
+    resolutionOutcome: ResolutionOutcome;
+    resolutionSummary: string;
+    resolutionDate: string; // "" ならクリア
+  }
+): Promise<void> {
+  if (!client) {
+    throw new Error("microCMS client is not configured");
+  }
+  await client.update<
+    Pick<
+      TaskContent,
+      "resolutionOutcome" | "resolutionSummary" | "resolutionDate"
+    >
+  >({
+    endpoint: "tasks",
+    contentId: id,
+    content: {
+      resolutionOutcome: [input.resolutionOutcome],
+      resolutionSummary: input.resolutionSummary,
+      resolutionDate: input.resolutionDate,
+    },
   });
 }

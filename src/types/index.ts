@@ -179,6 +179,17 @@ export type TaskPriority = "high" | "medium" | "low";
 //             自由入力モードは「個人回答」で、他の住民からは見えない (役員のみ Supabase で参照)
 export type VoteMode = "single" | "multiple" | "freetext";
 
+// 議決結果 (課題ごとに役員が最終的にまとめる結論)
+// - approved: 可決
+// - rejected: 否決
+// - deferred: 保留
+// - undecided: 未決 (デフォルト、まだ結論が出ていない)
+export type ResolutionOutcome =
+  | "approved"
+  | "rejected"
+  | "deferred"
+  | "undecided";
+
 // microCMS のスキーマに対応する型 (セレクト型は単一選択でも配列で返る)
 export interface TaskContent {
   title: string;
@@ -197,6 +208,12 @@ export interface TaskContent {
   voteDeadline?: string;
   // 回答方式。未設定なら "single" (後方互換)
   voteMode?: [VoteMode];
+  // 議決結果 (役員がまとめた最終結論)。未設定 = 未決扱い
+  resolutionOutcome?: [ResolutionOutcome];
+  // 議決結果の詳細説明 (リッチエディタ HTML)。空 = 未入力
+  resolutionSummary?: string;
+  // 議決した日付 (YYYY-MM-DD)
+  resolutionDate?: string;
 }
 
 export type TaskCms = TaskContent & MicroCMSListContent;
@@ -215,6 +232,10 @@ export interface Task {
   voteDeadline?: string;
   // 回答方式。未設定は "single"
   voteMode: VoteMode;
+  // 議決結果まとめ。未設定は "undecided" にフォールバック。
+  resolutionOutcome: ResolutionOutcome;
+  resolutionSummary: string; // HTML。未入力は空文字
+  resolutionDate?: string;
   publishedAt: string; // ISO date string
   updatedAt: string; // ISO date string
 }
