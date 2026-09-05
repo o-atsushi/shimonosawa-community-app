@@ -9,7 +9,7 @@ import {
   hasResolution,
 } from "@/lib/tasks";
 
-// 議決結果まとめページ。
+// 投票後役員まとめページ。
 // - 住民は結果と役員がまとめた要旨を見られる (未入力なら「まだ議決されていません」表示)
 // - 役員には編集フォーム (TaskResolutionAdminControl) が上部に出る
 export const revalidate = 30;
@@ -34,7 +34,7 @@ export default async function TaskResolutionPage({
       </Link>
 
       <h1 className="text-lg font-bold text-gray-800 mb-1">
-        🏛️ 議決結果まとめ
+        🏛️ 投票後役員まとめ
       </h1>
       <p className="text-sm text-gray-700 mb-1">課題: {task.title}</p>
       {task.resolutionDate && (

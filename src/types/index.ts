@@ -232,7 +232,7 @@ export interface Task {
   voteDeadline?: string;
   // 回答方式。未設定は "single"
   voteMode: VoteMode;
-  // 議決結果まとめ。未設定は "undecided" にフォールバック。
+  // 投票後役員まとめ。未設定は "undecided" にフォールバック。
   resolutionOutcome: ResolutionOutcome;
   resolutionSummary: string; // HTML。未入力は空文字
   resolutionDate?: string;
