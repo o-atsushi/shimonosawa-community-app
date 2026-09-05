@@ -20,11 +20,11 @@ function formatDeadline(iso: string): string {
   return `${yyyy}/${mm}/${dd} ${hh}:${mi}`;
 }
 
-// 残り時間の人間向け文字列。期限切れなら「投票終了」。
+// 残り時間の人間向け文字列。期限切れなら「受付終了」。
 function timeLeftText(deadline: string, now: Date = new Date()): string {
   const d = new Date(deadline).getTime();
   const diff = d - now.getTime();
-  if (diff <= 0) return "投票終了";
+  if (diff <= 0) return "受付終了";
   const minutes = Math.floor(diff / 60000);
   if (minutes < 60) return `残り ${minutes} 分`;
   const hours = Math.floor(minutes / 60);
@@ -34,8 +34,8 @@ function timeLeftText(deadline: string, now: Date = new Date()): string {
 }
 
 const MODE_LABELS: Record<VoteMode, string> = {
-  single: "🗳 投票 (単一選択)",
-  multiple: "🗳 投票 (複数選択可)",
+  single: "🗳 投票または回答 (単一選択)",
+  multiple: "🗳 投票または回答 (複数選択可)",
   freetext: "📝 自由回答",
 };
 
@@ -356,7 +356,7 @@ export default function VotingPanel({
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-50"
           />
           <p className="text-xs text-gray-500 mt-1">
-            💡 同じ世帯名で再投票すると、ご家族の前の回答が上書きされます。次回からは自動で入力されます。
+            💡 同じ世帯名で再度回答すると、ご家族の前の回答が上書きされます。次回からは自動で入力されます。
           </p>
         </div>
       )}
@@ -458,7 +458,7 @@ export default function VotingPanel({
                 : "回答を変更する"
               : voteMode === "freetext"
                 ? "送信する"
-                : "投票する"}
+                : "投票または回答する"}
         </button>
       )}
       {/* 回答済みのときだけ「取り消す」リンク (期限内のみ) */}

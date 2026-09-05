@@ -63,7 +63,7 @@ export default async function Home() {
           </Link>
         </div>
         <p className="text-xs text-gray-600 mb-3">
-          現在検討中の課題に投票・コメントで参加いただけます。
+          現在検討中の課題に投票または回答・コメントで参加いただけます。
         </p>
         {allTasks.length === 0 ? (
           <div className="bg-white/70 rounded-xl p-4 text-center text-sm text-gray-500 border border-green-100">
