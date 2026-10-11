@@ -8,6 +8,11 @@ import type { CirculationViewStats } from "@/types";
 interface Data {
   circulation: { id: string; title: string; createdAt: string };
   stats: CirculationViewStats;
+  interested: {
+    lineUserId: string;
+    displayName: string;
+    createdAt: string;
+  }[];
 }
 
 function formatDateTime(iso: string): string {
@@ -110,7 +115,7 @@ export default function CirculationViewsAdminPage({
     );
   }
 
-  const { circulation, stats } = data;
+  const { circulation, stats, interested } = data;
 
   return (
     <div>
@@ -129,22 +134,60 @@ export default function CirculationViewsAdminPage({
       </p>
 
       {/* サマリー */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
           <p className="text-xs text-gray-500 mb-1">ユニーク閲覧者</p>
-          <p className="text-2xl font-bold text-green-700">
+          <p className="text-xl font-bold text-green-700">
             {stats.uniqueViewers}
-            <span className="text-sm font-normal text-gray-500 ml-1">人</span>
+            <span className="text-xs font-normal text-gray-500 ml-0.5">人</span>
           </p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center">
+        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
           <p className="text-xs text-gray-500 mb-1">延べ閲覧 (PV)</p>
-          <p className="text-2xl font-bold text-blue-700">
+          <p className="text-xl font-bold text-blue-700">
             {stats.totalViews}
-            <span className="text-sm font-normal text-gray-500 ml-1">回</span>
+            <span className="text-xs font-normal text-gray-500 ml-0.5">回</span>
+          </p>
+        </div>
+        <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
+          <p className="text-xs text-gray-500 mb-1">❤️ 興味あり</p>
+          <p className="text-xl font-bold text-pink-700">
+            {interested.length}
+            <span className="text-xs font-normal text-gray-500 ml-0.5">人</span>
           </p>
         </div>
       </div>
+
+      {/* 興味あり一覧 */}
+      <h2 className="text-sm font-bold text-gray-700 mb-2">❤️ 興味ありを押した会員</h2>
+      {interested.length === 0 ? (
+        <div className="bg-white rounded-xl p-4 text-center text-sm text-gray-500 border border-gray-100 mb-6">
+          まだ興味ありの登録はありません。
+        </div>
+      ) : (
+        <div className="space-y-2 mb-6">
+          {interested.map((i) => (
+            <article
+              key={i.lineUserId}
+              className="bg-white rounded-xl p-3 shadow-sm border border-gray-100"
+            >
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <p className="font-bold text-sm text-gray-800">
+                  {i.displayName}
+                  {i.displayName === "(未登録)" && (
+                    <span className="text-xs text-gray-400 font-normal ml-2 font-mono">
+                      {i.lineUserId.slice(0, 8)}...
+                    </span>
+                  )}
+                </p>
+                <span className="text-xs text-gray-500">
+                  {formatDateTime(i.createdAt)}
+                </span>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
 
       {/* 閲覧者一覧 */}
       <h2 className="text-sm font-bold text-gray-700 mb-2">閲覧者一覧</h2>

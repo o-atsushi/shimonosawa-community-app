@@ -21,7 +21,14 @@ function monthLabel(key: string): string {
 
 // 一覧 + 月絞り込み (クライアント側フィルタ)。
 // items は新しい順で渡される前提 (lib/circulations.ts で created_at desc 済み)。
-export default function CirculationList({ items }: { items: Circulation[] }) {
+// interestCounts は circulation.id → 興味あり件数 のマップ (未指定なら 0)。
+export default function CirculationList({
+  items,
+  interestCounts = {},
+}: {
+  items: Circulation[];
+  interestCounts?: Record<string, number>;
+}) {
   // 月の選択肢を月キーで列挙 (重複除去 + 新しい順)
   const months = useMemo(() => {
     const set = new Set<string>();
@@ -92,7 +99,11 @@ export default function CirculationList({ items }: { items: Circulation[] }) {
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((c) => (
-            <CirculationCard key={c.id} circulation={c} />
+            <CirculationCard
+              key={c.id}
+              circulation={c}
+              interestCount={interestCounts[c.id] ?? 0}
+            />
           ))}
         </div>
       )}

@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import CirculationDeleteButton from "@/components/CirculationDeleteButton";
+import CirculationInterestButton from "@/components/CirculationInterestButton";
 import CirculationViewsAdminLink from "@/components/CirculationViewsAdminLink";
 import RecordCirculationView from "@/components/RecordCirculationView";
-import { getCirculation } from "@/lib/circulations";
+import { getInterestCount } from "@/lib/circulation-interests";
+import { getCirculation, isNewCirculation } from "@/lib/circulations";
 
 export const revalidate = 60;
 
@@ -22,8 +24,12 @@ export default async function CirculationDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const c = await getCirculation(id);
+  const [c, interestCount] = await Promise.all([
+    getCirculation(id),
+    getInterestCount(id),
+  ]);
   if (!c) return notFound();
+  const isNew = isNewCirculation(c.createdAt);
 
   return (
     <div>
@@ -33,8 +39,27 @@ export default async function CirculationDetailPage({
       >
         ← 回覧板一覧に戻る
       </Link>
-      <h1 className="text-lg font-bold text-gray-800 mb-1">{c.title}</h1>
-      <p className="text-xs text-gray-400 mb-4">{formatDateTime(c.createdAt)}</p>
+      <div className="flex items-center gap-2 mb-1 flex-wrap">
+        {isNew && (
+          <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+            🆕 新着
+          </span>
+        )}
+        <h1 className="text-lg font-bold text-gray-800">{c.title}</h1>
+      </div>
+      <p className="text-xs text-gray-400 mb-3">{formatDateTime(c.createdAt)}</p>
+
+      {/* 興味あり ボタン (詳細ページ上部に見やすく置く) */}
+      <div className="mb-4">
+        <CirculationInterestButton
+          circulationId={c.id}
+          initialCount={interestCount}
+          variant="full"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          興味がある内容の場合は ❤️ を押して意思表示できます (運営のニーズ把握に使います)。
+        </p>
+      </div>
 
       <div className="space-y-3">
         {c.imageUrls.map((url, idx) => (

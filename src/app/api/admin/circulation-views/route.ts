@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getInterestedMembers } from "@/lib/circulation-interests";
 import { getCirculation } from "@/lib/circulations";
 import { getViewStats } from "@/lib/circulation-views";
 import { isAdminLineUser } from "@/lib/members";
@@ -42,9 +43,13 @@ export async function POST(request: Request) {
       { status: 404 }
     );
   }
-  const stats = await getViewStats(circulationId);
+  const [stats, interested] = await Promise.all([
+    getViewStats(circulationId),
+    getInterestedMembers(circulationId),
+  ]);
   return NextResponse.json({
     circulation: { id: circ.id, title: circ.title, createdAt: circ.createdAt },
     stats,
+    interested,
   });
 }
