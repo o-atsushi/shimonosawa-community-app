@@ -620,9 +620,38 @@ Storage → `inquiry-images` → Policies タブに INSERT と SELECT の anon �
 
 - 全会員は `/circulation` から一覧 (サムネイル + タイトル + 日付) を閲覧可能
 - **新しいものが上に並びます**
+- **🆕 新着 バッジ**: 以下の **両方** を満たす回覧板にのみ自動で付きます (住民ごとに判定):
+  1. 投稿から **14 日以内**
+  2. **その住民がまだ詳細ページを開いていない** (= 未読)
+  → 詳細ページを 1 度でも開けば次回以降は消えます。未読のまま 14 日が経過しても自動で消えます。
+  → 判定には既存の `circulation_views` テーブルを再利用しています (LIFF ログイン済みの住民のみ既読判定が有効。未ログインは常に未読扱いで、投稿から 14 日以内は全部新着表示)。
 - **月で絞り込み** ができます (投稿のあった月だけが選択肢に出ます)
 - 各カードをタップすると **写真がフル表示** され、さらにタップで原寸を新規タブで開けます
 - 詳細画面の右下に **「🗑 この回覧板を削除」** が役員にのみ表示されます (誤投稿の取り消しに使用)
+
+### 8-B-2-B. 「❤️ 興味あり」ボタン
+
+住民は各回覧板について **❤️ 興味あり** ボタンを押して意思表示できます。運営のニーズ把握に使うための軽量な意思表示機能です。
+
+- **場所**: 一覧カード内 (コンパクト表示) と、詳細ページ上部 (大きめ)
+- **動作**: タップで ON/OFF (1 人 1 回。再タップで取り消し)
+- **カウント**: ボタン横に総数が表示され、誰でも見られます (**誰が押したかはアプリ画面には出しません**)
+- **要ログイン**: LIFF 経由でアプリを開いていないと押せません (押しても `LINE 経由でアプリを開いてください` と出る)
+- 一覧カードの ❤️ ボタンは **カードの Link を踏まずに単独で動作** するように作られているので、詳細ページを開かずに意思表示だけできます
+
+#### 役員側: 誰が「興味あり」を押したかを確認したい時
+アプリ画面には出していないので、Supabase の SQL Editor で直接見てください:
+
+```sql
+-- 回覧板ID (circulation_id) ごとに、誰がいつ ❤️ 興味あり を押したか
+select ci.created_at, m.display_name, ci.line_user_id
+from public.circulation_interests ci
+left join public.members m on m.line_user_id = ci.line_user_id
+where ci.circulation_id = '対象の circulation_id'
+order by ci.created_at;
+```
+
+`display_name` が null の行は「members に未登録 (LIFF ログイン前) の住民」です。
 
 ### 8-B-2-A. 閲覧履歴の確認 (役員専用)
 
@@ -707,6 +736,29 @@ create index if not exists circulation_views_circulation_id_idx
 create index if not exists circulation_views_line_user_id_idx
   on public.circulation_views (line_user_id);
 ```
+
+#### ⑤ 「興味あり」テーブル `circulation_interests`
+
+住民が回覧板に ❤️ 興味あり を押した記録を保持します。1 人 1 回 (再タップで取り消し = 行削除) で表現し、PRIMARY KEY で重複を防ぎます。
+
+```sql
+create table public.circulation_interests (
+  circulation_id uuid not null references public.circulations(id) on delete cascade,
+  line_user_id text not null,
+  created_at timestamptz not null default now(),
+  primary key (circulation_id, line_user_id)
+);
+alter table public.circulation_interests enable row level security;
+-- SELECT: 一覧の件数表示と役員の閲覧用に全員許可
+create policy "select_all" on public.circulation_interests for select using (true);
+-- INSERT / DELETE: anon に許可 (API 側で LIFF userId を検証)
+create policy "insert_anon" on public.circulation_interests for insert with check (true);
+create policy "delete_anon" on public.circulation_interests for delete using (true);
+create index if not exists circulation_interests_circulation_id_idx
+  on public.circulation_interests (circulation_id);
+```
+
+> ⚠️ テーブルが未作成だと、興味ありボタンは件数 0 のまま表示され、押すとサーバ側で 500 が返ります。本番 Supabase にこの SQL を流してからリリースしてください。
 
 ### 8-B-4. 不要になった回覧板を消したい時
 

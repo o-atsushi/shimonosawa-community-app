@@ -19,6 +19,19 @@ function formatCirculation(row: CirculationRow): Circulation {
   };
 }
 
+// 投稿から 14 日以内かどうか。カードや詳細ページで「新着」バッジ出し分けに使う。
+export const CIRCULATION_NEW_WINDOW_DAYS = 14;
+export function isNewCirculation(
+  createdAt: string,
+  now: Date = new Date()
+): boolean {
+  const d = new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return false;
+  const diffMs = now.getTime() - d.getTime();
+  const windowMs = CIRCULATION_NEW_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+  return diffMs >= 0 && diffMs <= windowMs;
+}
+
 // 一覧取得 (新しい順)
 export async function getCirculations(): Promise<Circulation[]> {
   if (!supabase) return [];

@@ -90,6 +90,34 @@ export async function getViewStats(
   }
 }
 
+// 自分が「既に閲覧済み」の回覧板 id を、与えられた候補内から返す。
+// 新着バッジ (14 日以内 かつ 未読) の判定に使う。
+export async function getOwnViewedCirculationIds(
+  lineUserId: string,
+  circulationIds: string[]
+): Promise<string[]> {
+  if (!supabase || circulationIds.length === 0) return [];
+  try {
+    const { data, error } = await supabase
+      .from("circulation_views")
+      .select("circulation_id")
+      .eq("line_user_id", lineUserId)
+      .in("circulation_id", circulationIds);
+    if (error) {
+      console.error("[circulation-views] getOwnViewedCirculationIds error", error);
+      return [];
+    }
+    const set = new Set<string>();
+    for (const row of data ?? []) {
+      set.add((row as { circulation_id: string }).circulation_id);
+    }
+    return Array.from(set);
+  } catch (err) {
+    console.error("[circulation-views] getOwnViewedCirculationIds threw", err);
+    return [];
+  }
+}
+
 // 一覧ページ用: 複数の回覧板の「延べ PV」を一括取得する。
 // 役員 UI で一覧上に「閲覧 N 件」を出したい場合に使う。
 export async function getViewCounts(

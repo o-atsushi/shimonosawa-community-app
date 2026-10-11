@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CirculationCard from "@/components/CirculationCard";
+import { getProfile, isLoggedIn } from "@/lib/liff";
 import type { Circulation } from "@/types";
 
 // 月キー: "2026-05" 形式
@@ -21,7 +22,17 @@ function monthLabel(key: string): string {
 
 // 一覧 + 月絞り込み (クライアント側フィルタ)。
 // items は新しい順で渡される前提 (lib/circulations.ts で created_at desc 済み)。
-export default function CirculationList({ items }: { items: Circulation[] }) {
+// interestCounts は circulation.id → 興味あり件数 のマップ (未指定なら 0)。
+// 新着バッジ用: LIFF userId を取得し自分が既に開いた回覧 id を /api/circulations/views/me
+// から一括取得して Set に保持。CirculationCard には isRead を渡し、
+// 「14 日以内 かつ 未読」の時だけ 🆕 新着 を出すよう委ねる。
+export default function CirculationList({
+  items,
+  interestCounts = {},
+}: {
+  items: Circulation[];
+  interestCounts?: Record<string, number>;
+}) {
   // 月の選択肢を月キーで列挙 (重複除去 + 新しい順)
   const months = useMemo(() => {
     const set = new Set<string>();
@@ -30,6 +41,47 @@ export default function CirculationList({ items }: { items: Circulation[] }) {
   }, [items]);
 
   const [selected, setSelected] = useState<string>(""); // "" = 全て
+  const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
+  const fetchedRef = useRef(false);
+
+  // 既読判定: LIFF ユーザーなら自分の閲覧済み id を取得する。
+  // 未ログイン / 取得失敗時は空集合のまま (= 全て未読扱い) で、
+  // 投稿から 14 日以内の回覧には新着バッジが出る。
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    if (items.length === 0) return;
+    if (!isLoggedIn()) return;
+    const p = getProfile();
+    if (!p) return;
+    let cancelled = false;
+    p.then(async (profile) => {
+      if (cancelled) return;
+      const uid = profile?.userId;
+      if (!uid) return;
+      try {
+        const res = await fetch("/api/circulations/views/me", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lineUserId: uid,
+            circulationIds: items.map((c) => c.id),
+          }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        if (Array.isArray(data.viewedIds)) {
+          setViewedIds(new Set(data.viewedIds));
+        }
+      } catch {
+        // ignore
+      }
+    }).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [items]);
 
   const filtered = useMemo(() => {
     if (!selected) return items;
@@ -92,7 +144,12 @@ export default function CirculationList({ items }: { items: Circulation[] }) {
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((c) => (
-            <CirculationCard key={c.id} circulation={c} />
+            <CirculationCard
+              key={c.id}
+              circulation={c}
+              interestCount={interestCounts[c.id] ?? 0}
+              isRead={viewedIds.has(c.id)}
+            />
           ))}
         </div>
       )}
