@@ -5,7 +5,7 @@ import CirculationInterestButton from "@/components/CirculationInterestButton";
 import CirculationViewsAdminLink from "@/components/CirculationViewsAdminLink";
 import RecordCirculationView from "@/components/RecordCirculationView";
 import { getInterestCount } from "@/lib/circulation-interests";
-import { getCirculation, isNewCirculation } from "@/lib/circulations";
+import { getCirculation } from "@/lib/circulations";
 
 export const revalidate = 60;
 
@@ -29,7 +29,6 @@ export default async function CirculationDetailPage({
     getInterestCount(id),
   ]);
   if (!c) return notFound();
-  const isNew = isNewCirculation(c.createdAt);
 
   return (
     <div>
@@ -39,14 +38,7 @@ export default async function CirculationDetailPage({
       >
         ← 回覧板一覧に戻る
       </Link>
-      <div className="flex items-center gap-2 mb-1 flex-wrap">
-        {isNew && (
-          <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-            🆕 新着
-          </span>
-        )}
-        <h1 className="text-lg font-bold text-gray-800">{c.title}</h1>
-      </div>
+      <h1 className="text-lg font-bold text-gray-800 mb-1">{c.title}</h1>
       <p className="text-xs text-gray-400 mb-3">{formatDateTime(c.createdAt)}</p>
 
       {/* 興味あり ボタン (詳細ページ上部に見やすく置く) */}

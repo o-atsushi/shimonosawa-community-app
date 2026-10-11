@@ -8,18 +8,23 @@ function formatDate(iso: string): string {
 }
 
 // 回覧板の一覧カード: 先頭の写真をサムネとして表示し、タイトルと日付を添える。
-// - 投稿から 14 日以内なら「新着」バッジを右上に表示 (既読/未読ではなく「2 週間以内に投稿されたもの」)
+// - 「🆕 新着」バッジは **投稿から 14 日以内 かつ 自分が未読** の時だけ表示。
+//    - 既読になれば消える (= 詳細ページを開くと circulation_views に行が記録され次回以降は未表示)
+//    - 未読のまま 14 日が経過しても消える (投稿日ベースの絶対カットオフ)
+//    - 未ログインや fetch 前は isRead=false 扱いなので、少なくとも投稿から 14 日以内は見える
 // - 興味あり数の表示 + ワンタップで ❤️ トグル (詳細ページを開かずに意思表示できる)
 export default function CirculationCard({
   circulation,
   interestCount = 0,
+  isRead = false,
 }: {
   circulation: Circulation;
   interestCount?: number;
+  isRead?: boolean;
 }) {
   const thumb = circulation.imageUrls[0];
   const extra = circulation.imageUrls.length - 1;
-  const isNew = isNewCirculation(circulation.createdAt);
+  const isNew = isNewCirculation(circulation.createdAt) && !isRead;
   return (
     <Link
       href={`/circulation/${circulation.id}`}

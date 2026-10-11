@@ -120,45 +120,6 @@ export async function toggleInterest(
   return { interested: true, count };
 }
 
-// 役員向け: 回覧板 1 件に「興味あり」した会員のリストを返す。
-// display_name は members テーブルから、未登録なら "(未登録)" を返す。
-export async function getInterestedMembers(
-  circulationId: string
-): Promise<
-  { lineUserId: string; displayName: string; createdAt: string }[]
-> {
-  if (!supabase) return [];
-  try {
-    const { data, error } = await supabase
-      .from("circulation_interests")
-      .select("line_user_id, created_at")
-      .eq("circulation_id", circulationId)
-      .order("created_at", { ascending: true });
-    if (error) {
-      console.error("[circulation-interests] getInterestedMembers error", error);
-      return [];
-    }
-    const rows = (data ?? []) as { line_user_id: string; created_at: string }[];
-    if (rows.length === 0) return [];
-    const ids = rows.map((r) => r.line_user_id);
-    const { data: memberRows } = await supabase
-      .from("members")
-      .select("line_user_id, display_name")
-      .in("line_user_id", ids);
-    const nameMap = new Map<string, string>();
-    for (const m of (memberRows ?? []) as {
-      line_user_id: string;
-      display_name: string;
-    }[]) {
-      nameMap.set(m.line_user_id, m.display_name);
-    }
-    return rows.map((r) => ({
-      lineUserId: r.line_user_id,
-      displayName: nameMap.get(r.line_user_id) ?? "(未登録)",
-      createdAt: r.created_at,
-    }));
-  } catch (err) {
-    console.error("[circulation-interests] getInterestedMembers threw", err);
-    return [];
-  }
-}
+// 誰が興味ありを押したかは、必要な時に Supabase 上で
+// `select * from circulation_interests where circulation_id = '...'`
+// を直接見に行く運用。アプリ画面には出さない。
