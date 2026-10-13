@@ -32,7 +32,9 @@ function loadEnv() {
     for (const line of readFileSync(file, "utf8").split("\n")) {
       const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
       if (!m) continue;
-      env[m[1]] = m[2].replace(/^(['"])(.*)\1$/, "$2");
+      const quoted = m[2].match(/^(['"])(.*?)\1/);
+      // 引用符なしの値は bash と同じく「空白 + #」以降を行末コメントとして捨てる
+      env[m[1]] = quoted ? quoted[2] : m[2].replace(/\s+#.*$/, "").trim();
     }
   }
   // アプリ本体と同じ変数名で書かれていても使えるようにする
