@@ -769,29 +769,6 @@ create index if not exists circulation_interests_circulation_id_idx
 
 > ⚠️ テーブルが未作成だと、興味あるボタンは件数 0 のまま表示され、押すとサーバ側で 500 が返ります。本番 Supabase にこの SQL を流してからリリースしてください。
 
-#### ⑥ 「紙配布希望」テーブル `circulation_paper_requests`
-
-住民が回覧板に 📄 紙配布希望 を押した記録を保持します。仕組みは ⑤ と同じです (1 人 1 回、再タップで取り消し)。
-
-```sql
-create table public.circulation_paper_requests (
-  circulation_id uuid not null references public.circulations(id) on delete cascade,
-  line_user_id text not null,
-  created_at timestamptz not null default now(),
-  primary key (circulation_id, line_user_id)
-);
-alter table public.circulation_paper_requests enable row level security;
--- SELECT: 件数表示と役員の閲覧用に全員許可
-create policy "select_all" on public.circulation_paper_requests for select using (true);
--- INSERT / DELETE: anon に許可 (API 側で LIFF userId を検証)
-create policy "insert_anon" on public.circulation_paper_requests for insert with check (true);
-create policy "delete_anon" on public.circulation_paper_requests for delete using (true);
-create index if not exists circulation_paper_requests_circulation_id_idx
-  on public.circulation_paper_requests (circulation_id);
-```
-
-> ⚠️ テーブルが未作成だと、紙配布希望ボタンは件数 0 のまま表示され、押すとサーバ側で 500 が返ります。本番 Supabase にこの SQL を流してからリリースしてください。
-
 ### 8-B-4. 不要になった回覧板を消したい時
 
 - 詳細ページから役員が「🗑 この回覧板を削除」で消すと、`circulations` テーブルから当該行が消えます
