@@ -6,6 +6,7 @@
 //   node scripts/line-broadcast.mjs test  <card.json>   自分 (LINE_TEST_TO) にだけ送る
 //   node scripts/line-broadcast.mjs send  <card.json> --expect <人数>   会員全員に送る
 //   node scripts/line-broadcast.mjs quota               今月の残り通数だけ見る
+//   node scripts/line-broadcast.mjs new-circulations    前回の回覧板お知らせ以降に追加された回覧板の一覧
 //
 // .env に必要なもの: LINE_TOKEN (or LINE_MESSAGING_CHANNEL_ACCESS_TOKEN) / LIFF_ID (or NEXT_PUBLIC_LIFF_ID) /
 //                    LINE_TEST_TO / NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -59,6 +60,7 @@ function fail(msg) {
 //   "label": "📜 回覧板",                 // 上部の小見出し (任意)
 //   "title": "秋の一斉清掃のお知らせ",
 //   "body": "10/20(日) 9:00〜 …",          // 本文 (任意)
+//   "items": ["保護司だより", "…"],         // 箇条書き (任意。回覧板のまとめ通知などで使う)
 //   "imageUrl": "https://…",               // 上部の写真 (任意・https のみ)
 //   "button": { "label": "回覧板を開く", "path": "/circulation/xxxx" },
 //   "altText": "…"                         // 通知一覧に出る文 (任意。省略時は label + title)
@@ -92,6 +94,27 @@ function buildMessage(card, liffId) {
   });
   if (card.body) {
     bodyContents.push({ type: "text", text: card.body, size: "sm", color: "#4b5563", wrap: true, margin: "md" });
+  }
+  if (card.items !== undefined) {
+    if (!Array.isArray(card.items) || card.items.length === 0 || card.items.some((t) => typeof t !== "string" || !t)) {
+      fail("items は空でない文字列の配列にしてください。");
+    }
+    bodyContents.push({ type: "separator", margin: "lg" });
+    bodyContents.push({
+      type: "box",
+      layout: "vertical",
+      margin: "lg",
+      spacing: "sm",
+      contents: card.items.map((text) => ({
+        type: "box",
+        layout: "baseline",
+        spacing: "sm",
+        contents: [
+          { type: "text", text: "●", size: "xxs", color: BRAND_GREEN, flex: 0 },
+          { type: "text", text, size: "sm", color: "#1f2937", wrap: true },
+        ],
+      })),
+    });
   }
 
   const bubble = {
@@ -205,6 +228,57 @@ async function getRecipients(env) {
   return [...new Set(rows.map((r) => r.line_user_id).filter((id) => LINE_USER_ID_PATTERN.test(id)))];
 }
 
+const formatJst = (iso) =>
+  new Date(iso).toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+// 前回「回覧板のお知らせ」を本番送信した日時 (sent.log から)。無ければ null
+function lastCirculationSendAt() {
+  if (!existsSync(LOG_FILE)) return null;
+  let last = null;
+  for (const line of readFileSync(LOG_FILE, "utf8").split("\n")) {
+    if (!line.trim()) continue;
+    try {
+      const e = JSON.parse(line);
+      if (e.kind === "send" && e.path?.startsWith("/circulation") && e.sent > 0) last = e.at;
+    } catch {
+      // 壊れた行は無視
+    }
+  }
+  return last;
+}
+
+async function listNewCirculations(env) {
+  const since = lastCirculationSendAt();
+  // 初回は直近 14 日 (アプリの「新着」表示と同じ期間) を候補にする
+  const from = since ?? new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+  const url =
+    `${env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/circulations` +
+    `?select=id,title,image_urls,created_at&created_at=gt.${encodeURIComponent(from)}&order=created_at.asc`;
+  const res = await fetch(url, {
+    headers: {
+      apikey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+    },
+  });
+  if (!res.ok) fail(`circulations の取得に失敗しました (HTTP ${res.status})。`);
+  const rows = await res.json();
+  console.log(
+    since
+      ? `前回の回覧板お知らせ (${formatJst(since)}) 以降に追加された回覧板: ${rows.length} 件`
+      : `回覧板のお知らせ履歴がないため、直近 14 日に追加された回覧板: ${rows.length} 件`
+  );
+  for (const r of rows) {
+    console.log(`  ${formatJst(r.created_at)}  ${r.title}  (id: ${r.id}, 写真 ${r.image_urls?.length ?? 0} 枚)`);
+  }
+}
+
 // ---------- 表示 ----------
 function printPreview(card, uri, message) {
   console.log("── プレビュー ──────────────────────────");
@@ -212,6 +286,7 @@ function printPreview(card, uri, message) {
   if (card.label) console.log(card.label);
   console.log(`■ ${card.title}`);
   if (card.body) console.log(card.body);
+  for (const item of card.items ?? []) console.log(`  ● ${item}`);
   console.log(`[ ${card.button.label} ] → ${uri}`);
   console.log(`通知に出る文: ${message.altText}`);
   console.log("────────────────────────────────────");
@@ -255,8 +330,14 @@ async function main() {
     return;
   }
 
+  if (cmd === "new-circulations") {
+    requireEnv(env, ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]);
+    await listNewCirculations(env);
+    return;
+  }
+
   if (!["check", "test", "send"].includes(cmd)) {
-    fail("使い方: node scripts/line-broadcast.mjs <check|test|send|quota> <card.json> [--expect 人数]");
+    fail("使い方: node scripts/line-broadcast.mjs <check|test|send|quota|new-circulations> <card.json> [--expect 人数]");
   }
 
   requireEnv(env, ["LIFF_ID"]);
