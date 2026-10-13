@@ -1,4 +1,9 @@
 <!-- BEGIN:nextjs-agent-rules -->
+# 📘 セッション開始時に必ず読むドキュメント
+
+**初回セッションや別アカウントからの引き継ぎ時は、まず [docs/PROJECT_HANDOFF.md](docs/PROJECT_HANDOFF.md) を読んでください。**
+プロジェクトの全体像・技術スタック・外部サービス・設計パターン・運用規約・ハマりポイント・現在の状態 (未マージ WIP 含む) が 1 ファイルにまとまっています。
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
