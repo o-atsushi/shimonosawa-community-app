@@ -47,8 +47,10 @@
 ├── CLAUDE.md                    # @AGENTS.md を import するだけ
 ├── docs/
 │   ├── admin-manual.md          # ノンエンジニア役員向けマニュアル (最重要・PR で必ず更新)
+│   ├── supabase-schema.sql      # 本番 Supabase の全スキーマ (書き出し結果。手で編集しない)
 │   └── PROJECT_HANDOFF.md       # このファイル
 ├── scripts/
+│   ├── dump-supabase-schema.sql # 本番スキーマを書き出すクエリ (SQL Editor で実行 → CSV)
 │   └── test-line-push.sh        # LINE 公式アカウントから自分/複数人宛にテスト push する curl スクリプト
 ├── src/
 │   ├── app/
@@ -122,8 +124,12 @@
 
 ### 4-3. Supabase のテーブル / Storage 一覧
 
-既存スキーマ (CREATE 文 + RLS ポリシー) は [docs/admin-manual.md §8-B-3](./admin-manual.md) 周辺に記載済み。
-**今後追加するテーブル / スキーマ変更の SQL はマニュアルには書かず、PR 本文に記載する** (例: `circulation_paper_requests` は PR #56 本文)。要約だけ:
+本番の全スキーマ (テーブル / インデックス / RLS ポリシー / Storage バケット) は **[docs/supabase-schema.sql](./supabase-schema.sql)** にある。
+本番から [scripts/dump-supabase-schema.sql](../scripts/dump-supabase-schema.sql) で書き出したもので、空の Supabase に上から流せば再現できる。
+- スキーマを変える PR では、**流す SQL を PR 本文に全文記載** → 本番で実行後に書き出し直して `docs/supabase-schema.sql` を更新する
+- マニュアルには作成 SQL を書かない (役員が日常で使う SELECT / UPDATE だけ書く)
+
+要約だけ:
 
 | オブジェクト | 用途 |
 |---|---|
@@ -325,4 +331,4 @@ LIFF の動作確認は **実機の LINE アプリから** 行うのが基本。
 5. `git branch -a` でローカル / リモートの未マージブランチを把握 (WIP が残っている可能性あり)
 6. ユーザーの依頼を日本語で短く要約し、必要なら 2-3 文で設計案を提示 → 合意を得てから着手
 7. 実装 → `npx next build` → **admin-manual.md 更新** → コミット → push → PR 作成
-8. 新しい Supabase テーブル / 環境変数が増える場合は **PR 本文の冒頭に「リリース前に必須」として明記**。Supabase に流す SQL は PR 本文にコピペ実行できる形で全文記載 (マニュアルには書かない)
+8. 新しい Supabase テーブル / 環境変数が増える場合は **PR 本文の冒頭に「リリース前に必須」として明記**。Supabase に流す SQL は PR 本文にコピペ実行できる形で全文記載 (マニュアルには書かない)。本番適用後に `docs/supabase-schema.sql` を書き出し直す

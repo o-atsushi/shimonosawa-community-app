@@ -33,6 +33,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 **マニュアルではなく PR 本文の冒頭** に「⚠️ リリース前に必須」として、そのままコピペで実行できる形で全文記載すること。
 (役員が日常的に使う確認用の SELECT 文はマニュアルに書いてよい)
 
+本番で SQL を実行したら、`scripts/dump-supabase-schema.sql` を SQL Editor で実行して CSV を書き出し、
+`docs/supabase-schema.sql` を置き換える (このファイルが本番スキーマの唯一のリファレンス。手で編集しない)。
+
 ## 例外
 - リファクタ・内部実装の変更のみで、役員の操作・運用に一切影響しない場合は更新不要。
   ただし PR 説明でその旨を明記すること (「マニュアル更新不要: 役員操作に影響なし」)。
