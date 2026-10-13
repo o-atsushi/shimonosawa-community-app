@@ -620,7 +620,7 @@ Storage → `inquiry-images` → Policies タブに INSERT と SELECT の anon �
 
 - 全会員は `/circulation` から一覧 (サムネイル + タイトル + 日付) を閲覧可能
 - **新しいものが上に並びます**
-- **🆕 新着 バッジ**: 以下の **両方** を満たす回覧板にのみ自動で付きます (住民ごとに判定):
+- **新着の目印 (緑の枠 + 右上の点滅する ● + 太字タイトル)**: 以下の **両方** を満たす回覧板にのみ自動で付きます (住民ごとに判定):
   1. 投稿から **14 日以内**
   2. **その住民がまだ詳細ページを開いていない** (= 未読)
   → 詳細ページを 1 度でも開けば次回以降は消えます。未読のまま 14 日が経過しても自動で消えます。
@@ -629,21 +629,30 @@ Storage → `inquiry-images` → Policies タブに INSERT と SELECT の anon �
 - 各カードをタップすると **写真がフル表示** され、さらにタップで原寸を新規タブで開けます
 - 詳細画面の右下に **「🗑 この回覧板を削除」** が役員にのみ表示されます (誤投稿の取り消しに使用)
 
-### 8-B-2-B. 「❤️ 興味あり」ボタン
+### 8-B-2-B. 「♥ 興味ある」「📄 紙配布希望」ボタン
 
-住民は各回覧板について **❤️ 興味あり** ボタンを押して意思表示できます。運営のニーズ把握に使うための軽量な意思表示機能です。
+住民は各回覧板について **♥ 興味ある** と **📄 紙配布希望** の 2 つのボタンで意思表示できます。どちらも運営のニーズ把握に使うための軽量な機能です。
 
-- **場所**: 一覧カード内 (コンパクト表示) と、詳細ページ上部 (大きめ)
+| ボタン | 場所 | 使い道 |
+|---|---|---|
+| ♥ 興味ある | 一覧カード右下 (♥ と件数のみ) と、詳細ページ上部 | 内容への関心の把握 |
+| 📄 紙配布希望 | 詳細ページ上部のみ | 「この回覧は紙でほしい」という要望の有無を後から確認する |
+
+> 💡 紙配布希望は **集計のための記録** です。押されても役員に通知は飛びませんし、自動で紙が配られる仕組みでもありません。
+
+- **場所**: 上の表のとおり
 - **動作**: タップで ON/OFF (1 人 1 回。再タップで取り消し)
 - **カウント**: ボタン横に総数が表示され、誰でも見られます (**誰が押したかはアプリ画面には出しません**)
 - **要ログイン**: LIFF 経由でアプリを開いていないと押せません (押しても `LINE 経由でアプリを開いてください` と出る)
-- 一覧カードの ❤️ ボタンは **カードの Link を踏まずに単独で動作** するように作られているので、詳細ページを開かずに意思表示だけできます
+- ボタンを押すと色が変わります (興味ある = ピンク、紙配布希望 = 水色)
+- 一覧カードの ♥ ボタンは **カードの Link を踏まずに単独で動作** するように作られているので、詳細ページを開かずに意思表示だけできます
 
-#### 役員側: 誰が「興味あり」を押したかを確認したい時
-アプリ画面には出していないので、Supabase の SQL Editor で直接見てください:
+#### 役員側: 誰が押したかを確認したい時
+アプリ画面には出していないので、Supabase の SQL Editor で直接見てください。
+**紙配布希望** を見たい時は、下の SQL の `circulation_interests` を `circulation_paper_requests` に置き換えてください。
 
 ```sql
--- 回覧板ID (circulation_id) ごとに、誰がいつ ❤️ 興味あり を押したか
+-- 回覧板ID (circulation_id) ごとに、誰がいつ ♥ 興味ある を押したか
 select ci.created_at, m.display_name, ci.line_user_id
 from public.circulation_interests ci
 left join public.members m on m.line_user_id = ci.line_user_id
@@ -737,9 +746,9 @@ create index if not exists circulation_views_line_user_id_idx
   on public.circulation_views (line_user_id);
 ```
 
-#### ⑤ 「興味あり」テーブル `circulation_interests`
+#### ⑤ 「興味ある」テーブル `circulation_interests`
 
-住民が回覧板に ❤️ 興味あり を押した記録を保持します。1 人 1 回 (再タップで取り消し = 行削除) で表現し、PRIMARY KEY で重複を防ぎます。
+住民が回覧板に ♥ 興味ある を押した記録を保持します。1 人 1 回 (再タップで取り消し = 行削除) で表現し、PRIMARY KEY で重複を防ぎます。
 
 ```sql
 create table public.circulation_interests (
@@ -758,7 +767,30 @@ create index if not exists circulation_interests_circulation_id_idx
   on public.circulation_interests (circulation_id);
 ```
 
-> ⚠️ テーブルが未作成だと、興味ありボタンは件数 0 のまま表示され、押すとサーバ側で 500 が返ります。本番 Supabase にこの SQL を流してからリリースしてください。
+> ⚠️ テーブルが未作成だと、興味あるボタンは件数 0 のまま表示され、押すとサーバ側で 500 が返ります。本番 Supabase にこの SQL を流してからリリースしてください。
+
+#### ⑥ 「紙配布希望」テーブル `circulation_paper_requests`
+
+住民が回覧板に 📄 紙配布希望 を押した記録を保持します。仕組みは ⑤ と同じです (1 人 1 回、再タップで取り消し)。
+
+```sql
+create table public.circulation_paper_requests (
+  circulation_id uuid not null references public.circulations(id) on delete cascade,
+  line_user_id text not null,
+  created_at timestamptz not null default now(),
+  primary key (circulation_id, line_user_id)
+);
+alter table public.circulation_paper_requests enable row level security;
+-- SELECT: 件数表示と役員の閲覧用に全員許可
+create policy "select_all" on public.circulation_paper_requests for select using (true);
+-- INSERT / DELETE: anon に許可 (API 側で LIFF userId を検証)
+create policy "insert_anon" on public.circulation_paper_requests for insert with check (true);
+create policy "delete_anon" on public.circulation_paper_requests for delete using (true);
+create index if not exists circulation_paper_requests_circulation_id_idx
+  on public.circulation_paper_requests (circulation_id);
+```
+
+> ⚠️ テーブルが未作成だと、紙配布希望ボタンは件数 0 のまま表示され、押すとサーバ側で 500 が返ります。本番 Supabase にこの SQL を流してからリリースしてください。
 
 ### 8-B-4. 不要になった回覧板を消したい時
 

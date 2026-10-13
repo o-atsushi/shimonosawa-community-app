@@ -25,7 +25,7 @@ function monthLabel(key: string): string {
 // interestCounts は circulation.id → 興味あり件数 のマップ (未指定なら 0)。
 // 新着バッジ用: LIFF userId を取得し自分が既に開いた回覧 id を /api/circulations/views/me
 // から一括取得して Set に保持。CirculationCard には isRead を渡し、
-// 「14 日以内 かつ 未読」の時だけ 🆕 新着 を出すよう委ねる。
+// 「14 日以内 かつ 未読」の時だけ新着表示 (未読ドット + 緑枠) を出すよう委ねる。
 export default function CirculationList({
   items,
   interestCounts = {},

@@ -75,7 +75,9 @@
 │   │   ├── inquiries.ts         # 要望 (microCMS inquiries)
 │   │   ├── circulations.ts      # 回覧板 (Supabase circulations)
 │   │   ├── circulation-views.ts # 閲覧履歴 (Supabase circulation_views)
-│   │   ├── circulation-interests.ts # 興味あり (Supabase circulation_interests)
+│   │   ├── circulation-reactions.ts # 興味ある / 紙配布希望 の共通トグル実装
+│   │   ├── circulation-interests.ts # 興味ある (Supabase circulation_interests)
+│   │   ├── circulation-paper-requests.ts # 紙配布希望 (Supabase circulation_paper_requests)
 │   │   ├── votes.ts             # 投票/回答 (Supabase votes)
 │   │   ├── comments.ts          # 課題コメント (Supabase comments)
 │   │   ├── comment-likes.ts     # コメントいいね (Supabase comment_likes)
@@ -133,7 +135,8 @@
 | **Table** `cleanup_rsvps` | 清掃活動の参加表明 |
 | **Table** `circulations` | 回覧板本体 (title, image_urls jsonb, uploaded_by_line_user_id) |
 | **Table** `circulation_views` | 回覧板の閲覧履歴 (PV カウント方針で INSERT のみ) |
-| **Table** `circulation_interests` | **PR #54 で追加**: 回覧板への「❤️ 興味あり」(PK: circulation_id, line_user_id) |
+| **Table** `circulation_interests` | **PR #54 で追加**: 回覧板への「♥ 興味ある」(PK: circulation_id, line_user_id) |
+| **Table** `circulation_paper_requests` | 回覧板への「📄 紙配布希望」(構造は circulation_interests と同じ) |
 | **Storage** `inquiry-images` | 要望に添付する画像 (リッチエディタからアップロード) |
 | **Storage** `circulation-images` | 回覧板の写真 |
 
@@ -169,7 +172,7 @@
 世帯名は `localStorage` に保存して次回プリフィル。
 
 ### 5-6. 回覧板の「新着」と「既読」 (PR #54)
-- 新着バッジ = **「投稿から 14 日以内」かつ「その住民が未読」** の AND
+- 新着表示 (緑枠 + 点滅ドット) = **「投稿から 14 日以内」かつ「その住民が未読」** の AND
 - 既読判定は既存の `circulation_views` テーブルを再利用 (詳細ページを開いた瞬間に INSERT)
 - 未ログイン住民には既読情報がないため常に未読扱い (投稿から 14 日以内なら全部新着表示)
 
