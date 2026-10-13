@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# LINE 一斉送信スキルの下書き・送信ログ
+/.line-broadcast/
+
+# Supabase からのエクスポート (個人情報を含む)
+*_rows.csv

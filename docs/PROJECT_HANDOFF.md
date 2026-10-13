@@ -43,6 +43,7 @@
 
 ```
 .
+├── .claude/skills/line-broadcast/ # LINE 一斉送信スキル (文面→検証→テスト送信→本番送信)
 ├── AGENTS.md                    # Claude Code 向け重要指示 (Next.js バージョン注意 + マニュアル更新ルール)
 ├── CLAUDE.md                    # @AGENTS.md を import するだけ
 ├── docs/
@@ -51,7 +52,7 @@
 │   └── PROJECT_HANDOFF.md       # このファイル
 ├── scripts/
 │   ├── dump-supabase-schema.sql # 本番スキーマを書き出すクエリ (SQL Editor で実行 → CSV)
-│   └── test-line-push.sh        # LINE 公式アカウントから自分/複数人宛にテスト push する curl スクリプト
+│   └── line-broadcast.mjs       # アプリ会員全員へ LINE カードを一斉送信 (line-broadcast スキルから使う)
 ├── src/
 │   ├── app/
 │   │   ├── page.tsx             # ホーム (カテゴリカード + 新着お知らせ + 課題サマリ)
@@ -70,7 +71,7 @@
 │   │   ├── microcms.ts          # microCMS クライアント
 │   │   ├── supabase.ts          # Supabase クライアント
 │   │   ├── sanitize.ts          # TRUSTED_BODY_SANITIZE / inquiryBodySanitize プロファイル
-│   │   ├── line-messaging.ts    # Push/Multicast + Flex builder
+│   │   ├── line-messaging.ts    # Push (役員グループ / 個人宛)
 │   │   ├── members.ts           # Supabase members テーブル + isAdmin 判定
 │   │   ├── tasks.ts             # 課題 (microCMS tasks) の CRUD と型変換
 │   │   ├── articles.ts (?)      # 記事 (microCMS articles)
@@ -194,7 +195,7 @@
 ### 5-9. Push 通知の方針
 - **グループ通知** (`pushTextToGroup`): 役員 LINE グループに 1 通送るだけ。安い、確実
 - **個別通知** (`pushTextToUser`): 要望の投稿者本人への回答通知等で使う。友だち未追加だと 400 だが致命的ではないので握りつぶす
-- **Multicast** (`multicastMessage`): 500 件まで 1 リクエスト。新規課題通知 (WIP) 等で使う
+- **一斉送信**: アプリからの自動送信はしない。必要な時に `line-broadcast` スキル (`scripts/line-broadcast.mjs`) で members 全員に Multicast (500 件 / リクエスト)。無料プランは月 200 通 (届いた人数 × 通数) なので、送信前に残り通数を必ず確認する
 
 ---
 
@@ -254,7 +255,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 
 ### 7-2. LINE Flex Message の互換性
 - `header` ブロックに `backgroundColor` + 子要素のパターンで「システムエラー」になるクライアントがある
-- → `body + footer` のみのシンプル構造が最も互換性高い (`scripts/test-line-push.sh` の実装参照)
+- → `hero + body + footer` のみのシンプル構造が最も互換性高い (`scripts/line-broadcast.mjs` の実装参照)
 - `size: "kilo"` 等の bubble サイズも環境依存で問題が出ることがある。省略推奨
 
 ### 7-3. macOS BSD sed の落とし穴
@@ -279,7 +280,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 - → `src/lib/compress-image.ts` でクライアント側圧縮 (2000px / JPEG 85%)
 
 ### 7-8. .env ファイルに秘密情報が入る
-- `scripts/test-line-push.sh` は `.env` を自動読み込みする (ユーザーが追加した機能)
+- `scripts/line-broadcast.mjs` は `.env` を自動読み込みする (LINE_TOKEN / LIFF_ID / LINE_TEST_TO / Supabase URL・anon key)
 - `.env` は `.gitignore` 済み。コミット前に `git status` で必ず確認
 
 ---
@@ -300,10 +301,9 @@ npm run dev      # http://localhost:3000
 # 4. ビルドチェック (push 前に必ず)
 npx next build
 
-# 5. LINE push テスト (任意)
-# scripts/test-line-push.sh に LINE_TOKEN / LINE_TO / LIFF_ID を env で与える
-# .env に書いておけば自動読み込みされる
-./scripts/test-line-push.sh
+# 5. LINE 一斉送信 (任意。通常は line-broadcast スキル経由で使う)
+# .env の LINE_TOKEN / LIFF_ID / LINE_TEST_TO / NEXT_PUBLIC_SUPABASE_* を読み込む
+node scripts/line-broadcast.mjs quota   # 今月の残り通数
 ```
 
 LIFF の動作確認は **実機の LINE アプリから** 行うのが基本。ローカルで直接開くと `liff.init()` が失敗するので、Vercel の Preview Deployment URL を LINE 公式アカウントの LIFF Endpoint に差し込んで確認する運用もあり。
