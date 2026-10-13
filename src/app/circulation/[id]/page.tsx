@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import CirculationDeleteButton from "@/components/CirculationDeleteButton";
-import CirculationInterestButton from "@/components/CirculationInterestButton";
+import CirculationReactionButton from "@/components/CirculationReactionButton";
 import CirculationViewsAdminLink from "@/components/CirculationViewsAdminLink";
 import RecordCirculationView from "@/components/RecordCirculationView";
 import { getInterestCount } from "@/lib/circulation-interests";
+import { getPaperRequestCount } from "@/lib/circulation-paper-requests";
 import { getCirculation } from "@/lib/circulations";
 
 export const revalidate = 60;
@@ -24,9 +25,10 @@ export default async function CirculationDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [c, interestCount] = await Promise.all([
+  const [c, interestCount, paperRequestCount] = await Promise.all([
     getCirculation(id),
     getInterestCount(id),
+    getPaperRequestCount(id),
   ]);
   if (!c) return notFound();
 
@@ -41,15 +43,24 @@ export default async function CirculationDetailPage({
       <h1 className="text-lg font-bold text-gray-800 mb-1">{c.title}</h1>
       <p className="text-xs text-gray-400 mb-3">{formatDateTime(c.createdAt)}</p>
 
-      {/* 興味あり ボタン (詳細ページ上部に見やすく置く) */}
+      {/* 興味ある / 紙配布希望 ボタン (詳細ページ上部に見やすく置く) */}
       <div className="mb-4">
-        <CirculationInterestButton
-          circulationId={c.id}
-          initialCount={interestCount}
-          variant="full"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          興味がある内容の場合は ❤️ を押して意思表示できます (運営のニーズ把握に使います)。
+        <div className="flex flex-wrap gap-2">
+          <CirculationReactionButton
+            kind="interest"
+            circulationId={c.id}
+            initialCount={interestCount}
+            variant="full"
+          />
+          <CirculationReactionButton
+            kind="paper"
+            circulationId={c.id}
+            initialCount={paperRequestCount}
+            variant="full"
+          />
+        </div>
+        <p className="text-xs text-gray-500 mt-1.5">
+          興味がある内容なら ♥、紙での配布を希望する場合は 📄 を押してください (運営のニーズ把握に使います)。
         </p>
       </div>
 

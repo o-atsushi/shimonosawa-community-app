@@ -75,7 +75,9 @@
 │   │   ├── inquiries.ts         # 要望 (microCMS inquiries)
 │   │   ├── circulations.ts      # 回覧板 (Supabase circulations)
 │   │   ├── circulation-views.ts # 閲覧履歴 (Supabase circulation_views)
-│   │   ├── circulation-interests.ts # 興味あり (Supabase circulation_interests)
+│   │   ├── circulation-reactions.ts # 興味ある / 紙配布希望 の共通トグル実装
+│   │   ├── circulation-interests.ts # 興味ある (Supabase circulation_interests)
+│   │   ├── circulation-paper-requests.ts # 紙配布希望 (Supabase circulation_paper_requests)
 │   │   ├── votes.ts             # 投票/回答 (Supabase votes)
 │   │   ├── comments.ts          # 課題コメント (Supabase comments)
 │   │   ├── comment-likes.ts     # コメントいいね (Supabase comment_likes)
@@ -120,7 +122,8 @@
 
 ### 4-3. Supabase のテーブル / Storage 一覧
 
-全てのスキーマ (CREATE 文 + RLS ポリシー) は [docs/admin-manual.md §8-B-3](./admin-manual.md) 周辺に記載済み。要約だけ:
+既存スキーマ (CREATE 文 + RLS ポリシー) は [docs/admin-manual.md §8-B-3](./admin-manual.md) 周辺に記載済み。
+**今後追加するテーブル / スキーマ変更の SQL はマニュアルには書かず、PR 本文に記載する** (例: `circulation_paper_requests` は PR #56 本文)。要約だけ:
 
 | オブジェクト | 用途 |
 |---|---|
@@ -133,7 +136,8 @@
 | **Table** `cleanup_rsvps` | 清掃活動の参加表明 |
 | **Table** `circulations` | 回覧板本体 (title, image_urls jsonb, uploaded_by_line_user_id) |
 | **Table** `circulation_views` | 回覧板の閲覧履歴 (PV カウント方針で INSERT のみ) |
-| **Table** `circulation_interests` | **PR #54 で追加**: 回覧板への「❤️ 興味あり」(PK: circulation_id, line_user_id) |
+| **Table** `circulation_interests` | **PR #54 で追加**: 回覧板への「♥ 興味ある」(PK: circulation_id, line_user_id) |
+| **Table** `circulation_paper_requests` | 回覧板への「📄 紙配布希望」(構造は circulation_interests と同じ) |
 | **Storage** `inquiry-images` | 要望に添付する画像 (リッチエディタからアップロード) |
 | **Storage** `circulation-images` | 回覧板の写真 |
 
@@ -169,7 +173,7 @@
 世帯名は `localStorage` に保存して次回プリフィル。
 
 ### 5-6. 回覧板の「新着」と「既読」 (PR #54)
-- 新着バッジ = **「投稿から 14 日以内」かつ「その住民が未読」** の AND
+- 新着表示 (緑枠 + 点滅ドット) = **「投稿から 14 日以内」かつ「その住民が未読」** の AND
 - 既読判定は既存の `circulation_views` テーブルを再利用 (詳細ページを開いた瞬間に INSERT)
 - 未ログイン住民には既読情報がないため常に未読扱い (投稿から 14 日以内なら全部新着表示)
 
@@ -200,7 +204,8 @@
 
 ### 6-2. マニュアル同時更新ルール (必須・[AGENTS.md](../AGENTS.md) に明記)
 機能の追加・変更・削除を行う PR では、**必ず同じ PR 内で [docs/admin-manual.md](./admin-manual.md) も更新する**。
-- UI / 動線の変化、スキーマ変更、環境変数追加、運用フロー変更 が対象
+- UI / 動線の変化、環境変数追加、運用フロー変更 が対象
+- **Supabase に流す SQL (テーブル作成・RLS 等) はマニュアルではなく PR 本文に全文記載する**
 - リファクタだけで役員操作に影響なしなら更新不要だが、その旨を PR 本文に明記
 - 書き方は「ノンエンジニアが画面でどこを押すか」の粒度で、専門用語は最小限
 
@@ -320,4 +325,4 @@ LIFF の動作確認は **実機の LINE アプリから** 行うのが基本。
 5. `git branch -a` でローカル / リモートの未マージブランチを把握 (WIP が残っている可能性あり)
 6. ユーザーの依頼を日本語で短く要約し、必要なら 2-3 文で設計案を提示 → 合意を得てから着手
 7. 実装 → `npx next build` → **admin-manual.md 更新** → コミット → push → PR 作成
-8. 新しい Supabase テーブル / 環境変数が増える場合は **PR 本文の冒頭に「リリース前に必須」として明記**
+8. 新しい Supabase テーブル / 環境変数が増える場合は **PR 本文の冒頭に「リリース前に必須」として明記**。Supabase に流す SQL は PR 本文にコピペ実行できる形で全文記載 (マニュアルには書かない)

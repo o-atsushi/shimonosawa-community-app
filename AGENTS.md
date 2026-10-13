@@ -16,7 +16,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## 対象となる変更例
 - 住民/役員に見える UI / 動線の追加・変更・削除
-- microCMS / Supabase のスキーマ追加・変更 (フィールド名、必須/任意の変更含む)
+- microCMS のスキーマ追加・変更 (フィールド名、必須/任意の変更含む)
 - 環境変数や外部サービス (Cloudflare R2 など) の追加・変更
 - 役員が手で行う運用フロー (公開手順・承認フロー・データ確認方法) の変更
 - 新しい管理画面・新しい API エンドポイントの追加
@@ -27,6 +27,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 3. 「⚠️ 注意」「💡 ヒント」を活用して、ハマりやすい点・運用上の注意を明示する。
 4. 既存セクションの記述と矛盾しないか読み直す。古くなった記述があれば同じ PR で直す。
 5. PR 本文の test plan に「マニュアル更新済み」のチェック項目を含める。
+
+## Supabase に適用する SQL は PR 本文に書く (マニュアルには書かない)
+テーブル作成・カラム追加・RLS ポリシー変更など、Supabase SQL Editor で流す必要がある SQL は
+**マニュアルではなく PR 本文の冒頭** に「⚠️ リリース前に必須」として、そのままコピペで実行できる形で全文記載すること。
+(役員が日常的に使う確認用の SELECT 文はマニュアルに書いてよい)
 
 ## 例外
 - リファクタ・内部実装の変更のみで、役員の操作・運用に一切影響しない場合は更新不要。

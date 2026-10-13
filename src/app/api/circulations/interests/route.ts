@@ -4,7 +4,7 @@ import { toggleInterest } from "@/lib/circulation-interests";
 
 const LINE_USER_ID_PATTERN = /^U[0-9a-f]{32}$/;
 
-// 回覧板への「興味あり」トグル。
+// 回覧板への「興味ある」トグル。
 // body: { circulationId, lineUserId }
 // 返り値: { interested: boolean, count: number }
 export async function POST(request: Request) {
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("[circulation-interests] toggle failed", err);
     return NextResponse.json(
-      { error: "興味ありの操作に失敗しました" },
+      { error: "興味あるの操作に失敗しました" },
       { status: 500 }
     );
   }

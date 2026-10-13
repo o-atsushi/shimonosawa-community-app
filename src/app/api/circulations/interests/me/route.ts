@@ -3,7 +3,7 @@ import { getOwnInterestedIds } from "@/lib/circulation-interests";
 
 const LINE_USER_ID_PATTERN = /^U[0-9a-f]{32}$/;
 
-// 自分が「興味あり」した回覧板 id を、与えられた候補内から返す。
+// 自分が「興味ある」した回覧板 id を、与えられた候補内から返す。
 // body: { lineUserId, circulationIds: string[] }
 // 返り値: { interestedIds: string[] }
 export async function POST(request: Request) {
