@@ -404,7 +404,7 @@ microCMS には「PDF の URL」だけを書きます。
 
 > 💡 個別の詳細ページ (`/inquiries/[id]`) を開いても、役員には同じトグルボタンが上部に表示されます。詳細を見ながら判断したい時はこちらが便利です。
 
-> ⚠️ **microCMS 側に `isPublished` フィールド (boolean) を追加** しておく必要があります (詳細は [8-A-2 ④](#8-a-2-セットアップ-初回のみ))。
+> ⚠️ **microCMS 側に `isPublished` フィールド (boolean) を追加** しておく必要があります (詳細は [8-A-2 ②](#8-a-2-セットアップ-初回のみ))。
 
 ### 8-A-0-C. 回答とステータスを LIFF 上で更新する (役員専用)
 
@@ -521,61 +521,14 @@ Vercel ダッシュボード → Settings → Environment Variables に以下 2 
 
 ### 8-A-2. セットアップ (初回のみ)
 
-Supabase 管理画面で以下を 1 回だけ作成してください。
+#### ① Supabase Storage (`inquiry-images` バケット + ポリシー)
+> 💡 テーブル・ポリシー・Storage バケットの作成 SQL は、マニュアルではなく **[docs/supabase-schema.sql](./supabase-schema.sql)** (本番の現状をそのまま書き出したもの) にまとめています。
+> 本番では作成済みなので、通常この作業は不要です。環境を作り直す時だけ、SQL Editor でこのファイルを上から実行してください。
 
-#### ① バケットを作る
-1. 左サイドバー **Storage** をクリック
-2. **「New bucket」** を押す
-3. 以下を入力:
-   - **Name**: `inquiry-images`
-   - **Public bucket**: **ON** (これで公開閲覧が可能になる)
-4. **Save** を押す
-
-#### ② ポリシー (Policies) を作る
-
-**おすすめ: SQL で一気に設定する**
-
-左サイドバー **SQL Editor** を開き、以下を貼り付けて **Run** を押します。
-
-```sql
--- INSERT 用ポリシー (住民が画像を投稿できるように)
-create policy "Allow anon insert to inquiry-images"
-  on storage.objects for insert
-  to anon
-  with check (bucket_id = 'inquiry-images');
-
--- SELECT 用ポリシー (住民・役員が画像を見られるように)
-create policy "Allow public read of inquiry-images"
-  on storage.objects for select
-  to anon
-  using (bucket_id = 'inquiry-images');
-```
-
-**「Success. No rows returned」** が出れば完了です。
-
-<details>
-<summary>UI で操作したい場合 (クリックして展開)</summary>
-
-1. **Storage → `inquiry-images` バケット → Policies** タブを開く
-2. **「New policy」** → **「For full customization」**
-3. 1 つ目 (INSERT):
-   - Policy name: `Allow anon insert to inquiry-images`
-   - Allowed operation: **INSERT**
-   - Target roles: **anon**
-   - WITH CHECK: `bucket_id = 'inquiry-images'`
-4. 同じ手順で 2 つ目 (SELECT):
-   - Policy name: `Allow public read of inquiry-images`
-   - Allowed operation: **SELECT**
-   - Target roles: **anon**
-   - USING: `bucket_id = 'inquiry-images'`
-
-</details>
-
-#### ③ 確認
-Storage → `inquiry-images` → Policies タブに INSERT と SELECT の anon ポリシーが 2 つ並んでいれば成功です。
+確認方法: Storage → `inquiry-images` → Policies タブに INSERT と SELECT の anon ポリシーが 2 つ並んでいれば OK です。
 試しにアプリの「💬 要望」→ 新規投稿で画像挿入ボタンを押し、画像が貼り付くか確認してください。
 
-#### ④ microCMS の inquiries に `isPublished` フィールドを追加
+#### ② microCMS の inquiries に `isPublished` フィールドを追加
 役員が LIFF 上で公開/非公開を切り替えできるようにするためのフラグです。
 
 1. microCMS → API スキーマ管理 → **inquiries**
@@ -681,93 +634,11 @@ order by ci.created_at;
 
 ### 8-B-3. セットアップ (初回のみ)
 
-`inquiry-images` バケットと同じ要領で、**`circulation-images`** バケットを Supabase に作ります。
+回覧板で使う Supabase の Storage バケット `circulation-images` と、テーブル
+`circulations` / `circulation_views` / `circulation_interests` / `circulation_paper_requests` が必要です。
 
-#### ① バケットを作る
-1. 左サイドバー **Storage** → **「New bucket」**
-2. **Name**: `circulation-images`、**Public bucket**: **ON**
-
-#### ② ポリシーを SQL で設定
-左サイドバー **SQL Editor** で実行:
-
-```sql
--- INSERT 用 (役員のみアップロードできる旨は API 側で is_admin チェック)
-create policy "Allow anon insert to circulation-images"
-  on storage.objects for insert
-  to anon
-  with check (bucket_id = 'circulation-images');
-
--- SELECT 用 (全会員が画像を見られるように)
-create policy "Allow public read of circulation-images"
-  on storage.objects for select
-  to anon
-  using (bucket_id = 'circulation-images');
-```
-
-#### ③ `circulations` テーブル
-SQL Editor で実行:
-
-```sql
-create table public.circulations (
-  id uuid primary key default gen_random_uuid(),
-  title text not null check (char_length(title) between 1 and 100),
-  image_urls jsonb not null default '[]'::jsonb,
-  uploaded_by_line_user_id text,
-  created_at timestamptz not null default now()
-);
-alter table public.circulations enable row level security;
--- SELECT: 全員 (一覧表示用)
-create policy "select_all" on public.circulations for select using (true);
--- INSERT / DELETE は anon に許可 (API 側で is_admin 検証)
-create policy "insert_anon" on public.circulations for insert with check (true);
-create policy "delete_anon" on public.circulations for delete using (true);
-create index if not exists circulations_created_at_idx
-  on public.circulations (created_at desc);
-```
-
-#### ④ 閲覧履歴テーブル `circulation_views`
-役員が「閲覧履歴」を確認するために必要なテーブルです。住民が詳細ページを開くたびに 1 行 INSERT されます。
-
-```sql
-create table public.circulation_views (
-  id uuid primary key default gen_random_uuid(),
-  circulation_id uuid not null references public.circulations(id) on delete cascade,
-  line_user_id text not null,
-  viewed_at timestamptz not null default now()
-);
-alter table public.circulation_views enable row level security;
--- SELECT: 役員ページが集計用に使う (実際の権限制御は API 側で is_admin 検証)
-create policy "select_all" on public.circulation_views for select using (true);
--- INSERT: anon に許可 (住民が詳細ページを開いた瞬間に記録される)
-create policy "insert_anon" on public.circulation_views for insert with check (true);
-create index if not exists circulation_views_circulation_id_idx
-  on public.circulation_views (circulation_id);
-create index if not exists circulation_views_line_user_id_idx
-  on public.circulation_views (line_user_id);
-```
-
-#### ⑤ 「興味ある」テーブル `circulation_interests`
-
-住民が回覧板に ♥ 興味ある を押した記録を保持します。1 人 1 回 (再タップで取り消し = 行削除) で表現し、PRIMARY KEY で重複を防ぎます。
-
-```sql
-create table public.circulation_interests (
-  circulation_id uuid not null references public.circulations(id) on delete cascade,
-  line_user_id text not null,
-  created_at timestamptz not null default now(),
-  primary key (circulation_id, line_user_id)
-);
-alter table public.circulation_interests enable row level security;
--- SELECT: 一覧の件数表示と役員の閲覧用に全員許可
-create policy "select_all" on public.circulation_interests for select using (true);
--- INSERT / DELETE: anon に許可 (API 側で LIFF userId を検証)
-create policy "insert_anon" on public.circulation_interests for insert with check (true);
-create policy "delete_anon" on public.circulation_interests for delete using (true);
-create index if not exists circulation_interests_circulation_id_idx
-  on public.circulation_interests (circulation_id);
-```
-
-> ⚠️ テーブルが未作成だと、興味あるボタンは件数 0 のまま表示され、押すとサーバ側で 500 が返ります。本番 Supabase にこの SQL を流してからリリースしてください。
+> 💡 テーブル・ポリシー・Storage バケットの作成 SQL は、マニュアルではなく **[docs/supabase-schema.sql](./supabase-schema.sql)** (本番の現状をそのまま書き出したもの) にまとめています。
+> 本番では作成済みなので、通常この作業は不要です。環境を作り直す時だけ、SQL Editor でこのファイルを上から実行してください。
 
 ### 8-B-4. 不要になった回覧板を消したい時
 
