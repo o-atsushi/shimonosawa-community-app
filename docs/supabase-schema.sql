@@ -203,6 +203,7 @@ create policy insert_self on public.inquiry_likes as permissive for insert to pu
 create policy select_all on public.inquiry_likes as permissive for select to public using (true);
 create policy insert_self on public.members as permissive for insert to public with check (true);
 create policy select_all on public.members as permissive for select to public using (true);
+create policy votes_delete_all on public.votes as permissive for delete to public using (true);
 create policy votes_insert_all on public.votes as permissive for insert to public with check ((((char_length(selected_option) >= 1) AND (char_length(selected_option) <= 200)) AND ((char_length(line_user_id) >= 1) AND (char_length(line_user_id) <= 64))));
 create policy votes_select_all on public.votes as permissive for select to public using (true);
 create policy votes_update_all on public.votes as permissive for update to public using (true) with check ((((char_length(selected_option) >= 1) AND (char_length(selected_option) <= 200)) AND ((char_length(line_user_id) >= 1) AND (char_length(line_user_id) <= 64))));
