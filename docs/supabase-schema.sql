@@ -2,7 +2,7 @@
 -- 下ノ沢自治会アプリ: Supabase スキーマ (本番の現状)
 -- =====================================================================
 -- 本番 Supabase から scripts/dump-supabase-schema.sql で書き出したもの。
--- 書き出し日: 2026-10-14
+-- 書き出し日: 2026-10-18
 --
 -- 用途:
 --   - 本番の構成を 1 か所で確認するためのリファレンス
@@ -36,13 +36,6 @@ create table public.circulation_interests (
   line_user_id text not null,
   created_at timestamp with time zone not null default now(),
   constraint circulation_interests_pkey PRIMARY KEY (circulation_id, line_user_id)
-);
-
-create table public.circulation_paper_requests (
-  circulation_id uuid not null,
-  line_user_id text not null,
-  created_at timestamp with time zone not null default now(),
-  constraint circulation_paper_requests_pkey PRIMARY KEY (circulation_id, line_user_id)
 );
 
 create table public.circulation_views (
@@ -132,9 +125,8 @@ create table public.votes (
 -- 外部キー
 -- ---------------------------------------------------------------------
 
-alter table public.circulation_interests add constraint circulation_interests_circulation_id_fkey FOREIGN KEY (circulation_id) REFERENCES public.circulations(id) ON DELETE CASCADE;
-alter table public.circulation_paper_requests add constraint circulation_paper_requests_circulation_id_fkey FOREIGN KEY (circulation_id) REFERENCES public.circulations(id) ON DELETE CASCADE;
-alter table public.circulation_views add constraint circulation_views_circulation_id_fkey FOREIGN KEY (circulation_id) REFERENCES public.circulations(id) ON DELETE CASCADE;
+alter table public.circulation_interests add constraint circulation_interests_circulation_id_fkey FOREIGN KEY (circulation_id) REFERENCES circulations(id) ON DELETE CASCADE;
+alter table public.circulation_views add constraint circulation_views_circulation_id_fkey FOREIGN KEY (circulation_id) REFERENCES circulations(id) ON DELETE CASCADE;
 
 -- ---------------------------------------------------------------------
 -- インデックス
@@ -142,7 +134,6 @@ alter table public.circulation_views add constraint circulation_views_circulatio
 
 CREATE INDEX article_comments_article_id_idx ON public.article_comments USING btree (article_id);
 CREATE INDEX circulation_interests_circulation_id_idx ON public.circulation_interests USING btree (circulation_id);
-CREATE INDEX circulation_paper_requests_circulation_id_idx ON public.circulation_paper_requests USING btree (circulation_id);
 CREATE INDEX circulation_views_circulation_id_idx ON public.circulation_views USING btree (circulation_id);
 CREATE INDEX circulation_views_line_user_id_idx ON public.circulation_views USING btree (line_user_id);
 CREATE INDEX circulations_created_at_idx ON public.circulations USING btree (created_at DESC);
@@ -161,7 +152,6 @@ CREATE UNIQUE INDEX votes_task_user_option_uq ON public.votes USING btree (task_
 
 alter table public.article_comments enable row level security;
 alter table public.circulation_interests enable row level security;
-alter table public.circulation_paper_requests enable row level security;
 alter table public.circulation_views enable row level security;
 alter table public.circulations enable row level security;
 alter table public.cleanup_rsvps enable row level security;
@@ -181,9 +171,6 @@ create policy update_anon on public.article_comments as permissive for update to
 create policy delete_anon on public.circulation_interests as permissive for delete to public using (true);
 create policy insert_anon on public.circulation_interests as permissive for insert to public with check (true);
 create policy select_all on public.circulation_interests as permissive for select to public using (true);
-create policy delete_anon on public.circulation_paper_requests as permissive for delete to public using (true);
-create policy insert_anon on public.circulation_paper_requests as permissive for insert to public with check (true);
-create policy select_all on public.circulation_paper_requests as permissive for select to public using (true);
 create policy insert_anon on public.circulation_views as permissive for insert to public with check (true);
 create policy select_all on public.circulation_views as permissive for select to public using (true);
 create policy delete_anon on public.circulations as permissive for delete to public using (true);
