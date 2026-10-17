@@ -49,9 +49,6 @@ export default async function CirculationDetailPage({
           initialCount={interestCount}
           variant="full"
         />
-        <p className="text-xs text-gray-500 mt-1.5">
-          興味がある内容なら ♥ を押してください (運営のニーズ把握に使います)。
-        </p>
       </div>
 
       <div className="space-y-3">
