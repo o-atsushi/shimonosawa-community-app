@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getProfile, isLoggedIn } from "@/lib/liff";
 
-// 回覧板への「1 人 1 回」トグルボタン (興味ある / 紙配布希望)。
+// 回覧板への「1 人 1 回」トグルボタン (興味ある)。
 // - 件数は SSR 側から initialCount で受け取り、タップで +1 / -1 する楽観的更新
 // - 自分がすでに押しているかは各 kind の /me API で非同期取得
 // - LIFF 未ログイン / 認証失敗時はボタン自体は見えるが押すとエラー表示
@@ -13,7 +13,7 @@ import { getProfile, isLoggedIn } from "@/lib/liff";
 //               カード自体の Link と干渉しないよう stopPropagation + preventDefault を付ける。
 //   "full"    : 詳細ページ用の大きめのボタン。
 
-type Kind = "interest" | "paper";
+type Kind = "interest";
 
 const KINDS: Record<
   Kind,
@@ -37,16 +37,6 @@ const KINDS: Record<
     onCompact: "text-pink-600",
     offCompactHover: "hover:text-pink-500",
     Icon: HeartIcon,
-  },
-  paper: {
-    endpoint: "/api/circulations/paper-requests",
-    idsKey: "requestedIds",
-    stateKey: "requested",
-    label: "紙配布希望",
-    onFull: "bg-sky-50 border-sky-300 text-sky-700",
-    onCompact: "text-sky-700",
-    offCompactHover: "hover:text-sky-600",
-    Icon: PaperIcon,
   },
 };
 
@@ -216,34 +206,3 @@ function HeartIcon({
   );
 }
 
-// 紙 (書類) アイコン。ON で塗りつぶし + 罫線を白抜き
-function PaperIcon({
-  filled,
-  className,
-}: {
-  filled: boolean;
-  className?: string;
-}) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path
-        d="M6 3h8l4 4v14H6z"
-        fill={filled ? "currentColor" : "none"}
-      />
-      <path d="M14 3v4h4" />
-      <path
-        d="M9 12h6M9 16h6"
-        stroke={filled ? "white" : "currentColor"}
-      />
-    </svg>
-  );
-}

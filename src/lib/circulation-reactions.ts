@@ -1,11 +1,11 @@
 import { supabase } from "@/lib/supabase";
 
-// 回覧板への「1 人 1 回」トグル型リアクション (興味ある / 紙配布希望) の共通実装。
+// 回覧板への「1 人 1 回」トグル型リアクション (興味ある) の共通実装。
 // 各テーブルは (circulation_id, line_user_id, created_at) で
 // PRIMARY KEY (circulation_id, line_user_id)。オフ状態 = 行が無い。
 // 誰が押したかはアプリ画面には出さず、必要な時に Supabase 上で直接見る運用。
 
-export type ReactionTable = "circulation_interests" | "circulation_paper_requests";
+export type ReactionTable = "circulation_interests";
 
 const tag = (table: ReactionTable) => `[${table}]`;
 
