@@ -34,7 +34,7 @@ function matchesPriority(task: Task, filter: PriorityFilter): boolean {
 }
 
 export default function TaskListWithFilter({ tasks }: { tasks: Task[] }) {
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("undecided");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
 
   const filteredTasks = useMemo(
