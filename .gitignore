@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Supabase からのエクスポート (個人情報を含む)
 *_rows.csv
+
+# AI相談の資料 (自治会の内部資料。リポジトリは公開なので絶対にコミットしない)
+/knowledge/

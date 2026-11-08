@@ -90,6 +90,20 @@ export default async function Home() {
         )}
       </section>
 
+      <Link
+        href="/chat"
+        className="flex items-center gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-4 shadow-sm hover:bg-sky-100 transition-colors"
+      >
+        <span className="text-3xl">🤖</span>
+        <span className="flex-1">
+          <span className="block font-bold text-gray-800">AI相談</span>
+          <span className="block text-xs text-gray-600">
+            自治会や野洲市のこと、気軽に質問できます
+          </span>
+        </span>
+        <span className="text-sky-700 font-bold">→</span>
+      </Link>
+
       <section>
         <h2 className="text-lg font-bold text-gray-800 mb-3">カテゴリ</h2>
         <div className="grid grid-cols-2 gap-3">
