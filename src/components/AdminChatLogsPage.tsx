@@ -249,6 +249,12 @@ export default function AdminChatLogsPage() {
       <p className="text-xs text-gray-500">
         質問した人の名前は表示されません (匿名集計)。「テストの質問」は、テスト環境で役員が試した質問です。
       </p>
+      <Link
+        href="/admin/circulation-texts"
+        className="block bg-white border border-gray-200 rounded-lg p-3 text-sm text-gray-800"
+      >
+        📜 回覧板の文字起こし (AI が読んでいる内容) を確認する →
+      </Link>
 
       <div className="grid grid-cols-2 gap-2">
         <Stat label="質問数" value={`${summary.total} 件`} sub={`会話 ${summary.people} 回分`} />

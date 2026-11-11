@@ -1,7 +1,16 @@
 import { createHash } from "node:crypto";
-import Anthropic from "@anthropic-ai/sdk";
-import { AnthropicBedrockMantle } from "@anthropic-ai/bedrock-sdk";
+import type Anthropic from "@anthropic-ai/sdk";
+import {
+  AI_PROVIDER as PROVIDER,
+  type Usage,
+  estimateCostUsd,
+  getAiClient,
+  isAiProviderConfigured,
+  modelId,
+  usageFromResponse,
+} from "@/lib/ai-client";
 import { getArticles } from "@/lib/api";
+import { getCirculationTextsForKnowledge } from "@/lib/circulation-texts";
 import { bodyExcerpt } from "@/lib/excerpt";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { TASK_STATUS_LABELS, getTasks } from "@/lib/tasks";
@@ -25,13 +34,6 @@ export type ChatCategory = (typeof CHAT_CATEGORIES)[number];
 export interface ChatTurn {
   role: "user" | "assistant";
   content: string;
-}
-
-interface Usage {
-  inputTokens: number;
-  outputTokens: number;
-  cacheReadTokens: number;
-  cacheWriteTokens: number;
 }
 
 // "off": CHAT_MODEL だけで答える / "auto": まず CHAT_FAST_MODEL、自信が無ければ CHAT_MODEL /
@@ -68,7 +70,6 @@ export const CHAT_MAX_QUESTION_LENGTH = 500;
 // 会話の続きとして送る過去ターン数の上限 (トークン量 = 費用 を抑える)
 export const CHAT_MAX_HISTORY_TURNS = 6;
 
-const PROVIDER = process.env.CHAT_PROVIDER === "bedrock" ? "bedrock" : "anthropic";
 // 上位モデル (ROUTING=off の時はこれだけを使う)
 const MODEL = process.env.CHAT_MODEL || "claude-opus-5-5";
 // auto の時に最初に答える安いモデル
@@ -76,47 +77,8 @@ const FAST_MODEL = process.env.CHAT_FAST_MODEL || "claude-haiku-5-5";
 const ROUTING: "off" | "auto" = process.env.CHAT_ROUTING === "off" ? "off" : "auto";
 const EFFORT = (process.env.CHAT_EFFORT || "low") as "low" | "medium" | "high";
 
-// 費用の目安 (100 万トークンあたりドル、Claude API の 2026-10 時点の価格)。
-// Bedrock (グローバル) もほぼ同じ (Sonnet 5.5 のキャッシュ読みのみ半額)。
-const PRICES: { match: string; input: number; output: number; cacheRead: number }[] = [
-  { match: "opus", input: 4, output: 20, cacheRead: 0.2 },
-  { match: "sonnet", input: 2, output: 10, cacheRead: 0.2 },
-  { match: "haiku", input: 0.1, output: 0.5, cacheRead: 0.01 },
-];
-
-function estimateCostUsd(model: string, u: Usage): number {
-  const p = PRICES.find((x) => model.includes(x.match)) ?? PRICES[0];
-  return (
-    (u.inputTokens * p.input +
-      u.cacheWriteTokens * p.input * 1.25 +
-      u.cacheReadTokens * p.cacheRead +
-      u.outputTokens * p.output) /
-    1_000_000
-  );
-}
-
 export function isChatConfigured(): boolean {
-  if (!supabaseAdmin) return false;
-  if (PROVIDER === "bedrock") return !!(process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION);
-  return !!process.env.ANTHROPIC_API_KEY;
-}
-
-let anthropicClient: Anthropic | null = null;
-let bedrockClient: AnthropicBedrockMantle | null = null;
-
-function getClient(): Anthropic | AnthropicBedrockMantle {
-  if (PROVIDER === "bedrock") {
-    bedrockClient ??= new AnthropicBedrockMantle();
-    return bedrockClient;
-  }
-  anthropicClient ??= new Anthropic();
-  return anthropicClient;
-}
-
-// Bedrock はモデル ID に "anthropic." が付く
-function modelId(model: string): string {
-  if (PROVIDER === "bedrock" && !model.startsWith("anthropic.")) return `anthropic.${model}`;
-  return model;
+  return !!supabaseAdmin && isAiProviderConfigured();
 }
 
 // ===== 資料 (system prompt) =====
@@ -125,7 +87,8 @@ const INSTRUCTIONS = `あなたは滋賀県野洲市「下ノ沢」地区の自�
 住民からの自治会・地域・野洲市に関する質問に、やさしい日本語で答えます。
 
 回答のルール:
-- 下に添付する「自治会の資料」と「アプリの最新お知らせ・課題」を最優先の根拠にしてください。資料同士で内容が違う場合は、日付が新しいものを優先し、そのことを一言添えてください。
+- 下に添付する「自治会の資料」と「アプリの最新お知らせ・課題・回覧板」を最優先の根拠にしてください。資料同士で内容が違う場合は、日付が新しいものを優先し、そのことを一言添えてください。
+- 回覧板の内容を使って答える時は、どの回覧板か (日付とタイトル) を示してください。回覧板は写真を AI が文字に起こしたもので読み間違いがありうるため、日時・金額・締切などを答える時は「アプリの回覧板の写真もご確認ください」と添えてください。
 - 資料に書かれていない自治会固有のこと (日程・金額・役員の判断・個別の事情) は推測で答えず、「資料には載っていないため、役員にお問い合わせください」と伝えてください。
 - 野洲市の制度・手続き・ごみの分別など市のことは、一般的な知識で答えてよいですが、制度は変わることがあるため「最新情報は野洲市役所の窓口または公式サイト (https://www.city.yasu.lg.jp/) でご確認ください」と必ず添えてください。
 - 個人を特定できる情報 (住民の名前・住所・連絡先など) は、資料に載っていても答えないでください。
@@ -195,6 +158,20 @@ async function loadKnowledge(): Promise<{ text: string; version: string }> {
     console.error("[chat] load microCMS content failed", err);
   }
 
+  try {
+    const circulations = await getCirculationTextsForKnowledge();
+    if (circulations.length) {
+      const body = circulations
+        .map((c) => `## [${c.date}] ${c.title}\n${c.content}`)
+        .join("\n\n");
+      sections.push(
+        `<document title="デジタル回覧板 (アプリの「回覧板」ページ。紙の回覧書類の写真を AI が文字に起こしたもの)">\n${body}\n</document>`
+      );
+    }
+  } catch (err) {
+    console.error("[chat] load circulation texts failed", err);
+  }
+
   const text = sections.length
     ? `# 自治会の資料\n\n${sections.join("\n\n")}`
     : "# 自治会の資料\n\n(資料はまだ登録されていません)";
@@ -255,7 +232,7 @@ async function askModel(
     },
   };
 
-  const client = getClient();
+  const client = getAiClient();
   // Claude API ではサーバー側フォールバックを有効化 (安全フィルタで断られた時に別モデルで再試行)。
   // Bedrock ではこのパラメータが使えない。Haiku はサーバー側フォールバックの対象外なので付けない。
   const useFallback = PROVIDER === "anthropic" && !model.includes("haiku");
@@ -267,12 +244,7 @@ async function askModel(
       })
     : await client.beta.messages.create(params);
 
-  const usage: Usage = {
-    inputTokens: response.usage.input_tokens,
-    outputTokens: response.usage.output_tokens,
-    cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
-    cacheWriteTokens: response.usage.cache_creation_input_tokens ?? 0,
-  };
+  const usage: Usage = usageFromResponse(response.usage);
 
   if (response.stop_reason === "refusal") {
     return {

@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createCirculation } from "@/lib/circulations";
+import { isCirculationTextConfigured, transcribeCirculation } from "@/lib/circulation-texts";
 import { isAdminLineUser } from "@/lib/members";
+
+// 投稿後に裏で行う文字起こし (after) もこの時間内で動く
+export const maxDuration = 60;
 
 const LINE_USER_ID_PATTERN = /^U[0-9a-f]{32}$/;
 const TITLE_MAX = 100;
@@ -78,6 +82,12 @@ export async function POST(request: Request) {
   try {
     const created = await createCirculation(title.trim(), imageUrls, lineUserId);
     revalidatePath("/circulation");
+    // AI相談で回覧板の内容に答えられるよう、写真を AI で文字に起こす。
+    // 応答を返した後に裏で実行するので、役員の投稿操作は待たされない。失敗しても投稿には影響しない
+    // (役員画面 /admin/circulation-texts からやり直せる)。
+    if (isCirculationTextConfigured()) {
+      after(() => transcribeCirculation(created).then(() => undefined));
+    }
     return NextResponse.json({ circulation: created }, { status: 201 });
   } catch (err) {
     console.error("[circulations] create failed", err);
